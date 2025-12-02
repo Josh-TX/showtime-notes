@@ -1,6 +1,0 @@
-#canvas {
-    background-image: url('staff5.png');
-    background-repeat: repeat-x; /* Repeats the image horizontally */
-    background-size: auto 100%; /* Stretches the image vertically to fit the container */
-    background-position: top; /* Ensures the image is aligned at the top */
-}

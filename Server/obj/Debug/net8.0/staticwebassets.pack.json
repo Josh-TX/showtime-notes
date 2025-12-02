@@ -1,0 +1,69 @@
+{
+  "Files": [
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-1s3WlefU.css",
+      "PackagePath": "staticwebassets/assets/index-1s3WlefU.css"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-BiNduJKV.js",
+      "PackagePath": "staticwebassets/assets/index-BiNduJKV.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-BwBzT9hO.js",
+      "PackagePath": "staticwebassets/assets/index-BwBzT9hO.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-CNF4OexB.js",
+      "PackagePath": "staticwebassets/assets/index-CNF4OexB.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-D-X_Ek_w.js",
+      "PackagePath": "staticwebassets/assets/index-D-X_Ek_w.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-D9MXppIu.js",
+      "PackagePath": "staticwebassets/assets/index-D9MXppIu.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-DFuUlXcj.js",
+      "PackagePath": "staticwebassets/assets/index-DFuUlXcj.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-DkBeiObu.js",
+      "PackagePath": "staticwebassets/assets/index-DkBeiObu.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-hJxGcwBP.js",
+      "PackagePath": "staticwebassets/assets/index-hJxGcwBP.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/assets/index-nKU7wI6y.js",
+      "PackagePath": "staticwebassets/assets/index-nKU7wI6y.js"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/index.html",
+      "PackagePath": "staticwebassets/index.html"
+    },
+    {
+      "Id": "/home/josh/repos/showtime-notes/Server/wwwroot/vite.svg",
+      "PackagePath": "staticwebassets/vite.svg"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.build.showtime-notes.props",
+      "PackagePath": "build\\showtime-notes.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.showtime-notes.props",
+      "PackagePath": "buildMultiTargeting\\showtime-notes.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.showtime-notes.props",
+      "PackagePath": "buildTransitive\\showtime-notes.props"
+    },
+    {
+      "Id": "obj/Debug/net8.0/staticwebassets/msbuild.showtime-notes.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
