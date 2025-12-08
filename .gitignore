@@ -2,3 +2,9 @@
 ui/node_modules
 ui/.vscode
 ui/public
+Server/bin
+Server/obj
+Server/wwwroot
+
+Server/scenes.json
+Server/identity.db*
