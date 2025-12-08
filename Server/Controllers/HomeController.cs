@@ -15,6 +15,7 @@ public class HomeController(SignInManager<IdentityUser> _signInManager) : Contro
             {
                 _cachedIndexHtml = System.IO.File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "index.html"));
             }
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
             return File(_cachedIndexHtml, "text/html");
         }
         return RedirectToAction(nameof(Login));
@@ -47,7 +48,8 @@ public class HomeController(SignInManager<IdentityUser> _signInManager) : Contro
         {
             await _signInManager.SignOutAsync();
             return Ok("Logged out successfully");
-        } else
+        }
+        else
         {
             return Ok("you were already logged out");
         }

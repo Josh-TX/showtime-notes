@@ -18,8 +18,8 @@ public class ApiController(SignInManager<IdentityUser> _signInManager, UserManag
         }
 
         var result = await _signInManager.PasswordSignInAsync(
-            user, 
-            request.Password, 
+            user,
+            request.Password,
             isPersistent: true, // Remember me
             lockoutOnFailure: false
         );
@@ -37,7 +37,7 @@ public class ApiController(SignInManager<IdentityUser> _signInManager, UserManag
     public async Task<IActionResult> Signup([FromBody] SignupRequest request)
     {
         // Validate invite code (change this to your actual invite code)
-        const string validInviteCode = "SECRET123";
+        const string validInviteCode = "cbc2025";
         if (request.InviteCode != validInviteCode)
         {
             return BadRequest(new { message = "Invalid invite code" });

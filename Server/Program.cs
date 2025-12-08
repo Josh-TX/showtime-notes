@@ -8,7 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
 
 services.AddDbContext<IdentityDbContext>(options => options.UseSqlite("Data Source=identity.db"));
-services.AddIdentity<IdentityUser, IdentityRole>(options => {
+services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_";
     options.Password.RequireLowercase = false;
     options.Password.RequireUppercase = false;
@@ -18,9 +19,11 @@ services.AddIdentity<IdentityUser, IdentityRole>(options => {
 }).AddSignInManager().AddEntityFrameworkStores<IdentityDbContext>();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddSingleton<ActiveUserService>();
+builder.Services.AddSingleton<SceneService>();
 builder.Services.AddSignalR(options =>
 {
-    var maxkb = int.TryParse(Environment.GetEnvironmentVariable("MAXKB"), out var n) ? n : 200; //default to 200kb
+    var maxkb = 200;
     options.MaximumReceiveMessageSize = 1024 * maxkb;
     options.EnableDetailedErrors = true;
 });
