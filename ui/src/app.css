@@ -1,7 +1,0 @@
-html, body, #app{ 
-  height: 100%;
-}
-
-#app{
-  --pico-form-element-spacing-vertical: 0.5rem;
-}

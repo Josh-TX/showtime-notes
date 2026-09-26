@@ -1,10 +1,18 @@
-# Logs
-ui/node_modules
-ui/.vscode
-ui/public
-Server/bin
-Server/obj
-Server/wwwroot
+# Python
+__pycache__/
+*.pyc
+.venv/
 
-Server/scenes.json
-Server/identity.db*
+# .NET
+bin/
+obj/
+
+# Node
+node_modules/
+dist/
+
+# OS
+.DS_Store
+
+# Images
+images/
