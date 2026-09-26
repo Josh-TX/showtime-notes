@@ -3,7 +3,7 @@ Showtime notes is a project that allows a team to record audio of a performance 
 
 # Glossary
 
-Server - the backend go server. there should be one server running for a live show, but there can be many clients
+Server - the backend python server. there should be one server running for a live show, but there can be many clients
 Client - The web browser that connects to a server via web socket. Each client must have a name before connecting
 Listener - The client that is streaming audio to the server, typically microphone input, but could also stream media audio. Still behaves like a normal client. There can only be 1 listener per server
 Live - refers to the audio currently being received by the server in real-time by the listener.
@@ -15,7 +15,7 @@ Processing - When a recording is finished and saved, it has to be processed, whi
 Song status - A song could be in the following statuses: recording, finished-recording, processing, ready, synced, acquiring-sync.
 acquiring-sync - We're trying to match live with a position in a recorded song, but we haven't acquired a confident lock yet.
 synced - We have successfully matched live to a specific position of a recorded song. We can continuously move the position bar to match live, and make minor adjustments if live is a slightly different tempo.
-autoplay - when synced and the end of a song is reached, it should automatically switch the current song to "ready" and the next song to "acquiring-sync".
+
 Notes - text information associate with a song. Can either be "Free Notes" or "Track Notes"
 Free Notes - A large text area of free-form text associated with a specific song (no time element).
 Track Notes - A small snippet of text that appears as an HTML element on the track at a specific time for a specific song.

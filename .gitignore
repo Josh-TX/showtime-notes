@@ -16,3 +16,7 @@ dist/
 
 # Images
 images/
+
+# Showtime Notes runtime data
+backend/data/
+*.uv-cache/

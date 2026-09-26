@@ -1,0 +1,15 @@
+[project]
+name = "showtime-notes-backend"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "numpy>=1.26",
+    "pydantic>=2.9",
+    "demucs @ git+https://github.com/adefossez/demucs#egg=demucs",
+    "beat_this @ git+https://github.com/CPJKU/beat_this#egg=beat_this",
+]
+
+[tool.uv]
+package = false

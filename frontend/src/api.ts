@@ -1,0 +1,41 @@
+import type { AcquireMode, Song, ShowInfo, TrackNote, Waveform } from './types'
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`/api${path}`, {
+    method,
+    headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+  if (!res.ok) {
+    throw new Error(`${method} ${path} failed: ${res.status} ${await res.text()}`)
+  }
+  return res.status === 204 ? (undefined as T) : res.json()
+}
+
+export const api = {
+  getState: () => request<ShowInfo>('GET', '/state'),
+  getSong: (id: string) => request<Song>('GET', `/songs/${id}`),
+  getWaveform: (id: string) => request<Waveform>('GET', `/songs/${id}/waveform`),
+  audioUrl: (id: string, stem: 'original' | 'vocals' | 'novocals') => `/api/songs/${id}/audio/${stem}`,
+
+  renameSong: (id: string, name: string) => request<Song>('POST', `/songs/${id}/rename`, { name }),
+  deleteSong: (id: string) => request<void>('DELETE', `/songs/${id}`),
+  reorderSongs: (songIds: string[]) => request<void>('POST', '/songs/reorder', { songIds }),
+  setFreeNotes: (id: string, text: string) => request<Song>('PUT', `/songs/${id}/free-notes`, { text }),
+  addTrackNote: (id: string, timeSeconds: number, text: string) =>
+    request<TrackNote>('POST', `/songs/${id}/track-notes`, { timeSeconds, text }),
+  updateTrackNote: (id: string, noteId: string, patch: { timeSeconds?: number; text?: string }) =>
+    request<TrackNote>('PUT', `/songs/${id}/track-notes/${noteId}`, patch),
+  deleteTrackNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/track-notes/${noteId}`),
+
+  startRecording: (includePreRoll: boolean) => request<Song>('POST', '/recording/start', { includePreRoll }),
+  stopRecording: () => request<Song>('POST', '/recording/stop'),
+  discardRecording: () => request<void>('POST', '/recording/discard'),
+  confirmRecording: (name: string) => request<Song>('POST', '/recording/confirm', { name }),
+
+  startSync: (songId: string, mode: AcquireMode, viewportLoSeconds?: number, viewportHiSeconds?: number) =>
+    request<ShowInfo>('POST', '/sync/start', { songId, mode, viewportLoSeconds, viewportHiSeconds }),
+  stopSync: () => request<ShowInfo>('POST', '/sync/stop'),
+
+  setAcquireStartRange: (seconds: number) => request<void>('PUT', '/settings/acquire-start-range', { seconds }),
+}
