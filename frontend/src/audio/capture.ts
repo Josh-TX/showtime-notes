@@ -5,10 +5,8 @@ let seq = 0
 let audioContext: AudioContext | null = null
 let stream: MediaStream | null = null
 
-export async function startCapture(): Promise<void> {
-  stream = await navigator.mediaDevices.getUserMedia({
-    audio: { channelCount: 1, sampleRate: 48000, echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-  })
+async function pipeStream(mediaStream: MediaStream): Promise<void> {
+  stream = mediaStream
   audioContext = new AudioContext({ sampleRate: 48000 })
   await audioContext.audioWorklet.addModule(captureWorkletUrl)
   const source = audioContext.createMediaStreamSource(stream)
@@ -22,6 +20,30 @@ export async function startCapture(): Promise<void> {
     ws.sendBinary(message.buffer)
   }
   source.connect(node)
+}
+
+export async function startCapture(deviceId?: string): Promise<void> {
+  const mediaStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      channelCount: 1,
+      sampleRate: 48000,
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      ...(deviceId ? { deviceId: { exact: deviceId } } : {}),
+    },
+  })
+  await pipeStream(mediaStream)
+}
+
+export async function startTabCapture(): Promise<void> {
+  const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+  const audioTracks = displayStream.getAudioTracks()
+  displayStream.getVideoTracks().forEach((track) => track.stop())
+  if (audioTracks.length === 0) {
+    throw new Error('The shared tab did not include audio. Re-share and check "Share tab audio".')
+  }
+  await pipeStream(new MediaStream(audioTracks))
 }
 
 export function stopCapture(): void {

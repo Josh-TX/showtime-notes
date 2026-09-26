@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import SyncIndicator from './SyncIndicator.vue'
-import ListenerMenu from './ListenerMenu.vue'
+import ListenerModal from './ListenerModal.vue'
 </script>
 
 <template>
   <header class="navbar">
     <span class="brand">Showtime Notes</span>
     <SyncIndicator />
-    <ListenerMenu class="right" />
+    <ListenerModal class="right" />
   </header>
 </template>
 

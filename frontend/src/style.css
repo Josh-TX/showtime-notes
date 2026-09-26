@@ -26,6 +26,10 @@ textarea {
 button {
   cursor: pointer;
 }
-button:hover {
+button:hover:not(:disabled) {
   background: #2c2c2c;
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
