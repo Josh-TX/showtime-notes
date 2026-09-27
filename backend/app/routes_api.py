@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from . import recording, storage, sync_service
-from .models import ApiModel, AcquireMode, Song, TrackNote
+from .models import ApiModel, AcquireMode, Song, TimelineNote
 from .state import state
 
 router = APIRouter(prefix="/api")
@@ -112,31 +112,31 @@ async def set_free_notes(song_id: str, body: FreeNotesBody):
     return song.model_dump(by_alias=True)
 
 
-class TrackNoteBody(ApiModel):
+class TimelineNoteBody(ApiModel):
     time_seconds: float
     text: str
 
 
-@router.post("/songs/{song_id}/track-notes")
-async def add_track_note(song_id: str, body: TrackNoteBody):
+@router.post("/songs/{song_id}/timeline-notes")
+async def add_timeline_note(song_id: str, body: TimelineNoteBody):
     song = _song_or_404(song_id)
-    note = TrackNote(id=uuid.uuid4().hex[:12], time_seconds=body.time_seconds, text=body.text)
-    song.track_notes.append(note)
+    note = TimelineNote(id=uuid.uuid4().hex[:12], time_seconds=body.time_seconds, text=body.text)
+    song.timeline_notes.append(note)
     await state.save_and_broadcast_song(song)
     return note.model_dump(by_alias=True)
 
 
-class UpdateTrackNoteBody(ApiModel):
+class UpdateTimelineNoteBody(ApiModel):
     time_seconds: float | None = None
     text: str | None = None
 
 
-@router.put("/songs/{song_id}/track-notes/{note_id}")
-async def update_track_note(song_id: str, note_id: str, body: UpdateTrackNoteBody):
+@router.put("/songs/{song_id}/timeline-notes/{note_id}")
+async def update_timeline_note(song_id: str, note_id: str, body: UpdateTimelineNoteBody):
     song = _song_or_404(song_id)
-    note = next((n for n in song.track_notes if n.id == note_id), None)
+    note = next((n for n in song.timeline_notes if n.id == note_id), None)
     if note is None:
-        raise HTTPException(404, "no such track note")
+        raise HTTPException(404, "no such timeline note")
     if body.time_seconds is not None:
         note.time_seconds = body.time_seconds
     if body.text is not None:
@@ -145,10 +145,10 @@ async def update_track_note(song_id: str, note_id: str, body: UpdateTrackNoteBod
     return note.model_dump(by_alias=True)
 
 
-@router.delete("/songs/{song_id}/track-notes/{note_id}")
-async def delete_track_note(song_id: str, note_id: str):
+@router.delete("/songs/{song_id}/timeline-notes/{note_id}")
+async def delete_timeline_note(song_id: str, note_id: str):
     song = _song_or_404(song_id)
-    song.track_notes = [n for n in song.track_notes if n.id != note_id]
+    song.timeline_notes = [n for n in song.timeline_notes if n.id != note_id]
     await state.save_and_broadcast_song(song)
     return {"ok": True}
 

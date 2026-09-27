@@ -2,7 +2,7 @@
 
 backend/data/
   show.json                        - song order (ids) + show-level settings
-  songs/{id}/meta.json              - Song model (name, status, free/track notes, duration)
+  songs/{id}/meta.json              - Song model (name, status, free/timeline notes, duration)
   songs/{id}/original.aac           - full mix, transcoded post-processing
   songs/{id}/vocals.aac
   songs/{id}/novocals.aac

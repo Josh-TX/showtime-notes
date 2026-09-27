@@ -1,4 +1,4 @@
-import type { AcquireMode, Song, ShowInfo, TrackNote, Waveform } from './types'
+import type { AcquireMode, Song, ShowInfo, TimelineNote, Waveform } from './types'
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -23,11 +23,11 @@ export const api = {
   deleteSong: (id: string) => request<void>('DELETE', `/songs/${id}`),
   reorderSongs: (songIds: string[]) => request<void>('POST', '/songs/reorder', { songIds }),
   setFreeNotes: (id: string, text: string) => request<Song>('PUT', `/songs/${id}/free-notes`, { text }),
-  addTrackNote: (id: string, timeSeconds: number, text: string) =>
-    request<TrackNote>('POST', `/songs/${id}/track-notes`, { timeSeconds, text }),
-  updateTrackNote: (id: string, noteId: string, patch: { timeSeconds?: number; text?: string }) =>
-    request<TrackNote>('PUT', `/songs/${id}/track-notes/${noteId}`, patch),
-  deleteTrackNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/track-notes/${noteId}`),
+  addTimelineNote: (id: string, timeSeconds: number, text: string) =>
+    request<TimelineNote>('POST', `/songs/${id}/timeline-notes`, { timeSeconds, text }),
+  updateTimelineNote: (id: string, noteId: string, patch: { timeSeconds?: number; text?: string }) =>
+    request<TimelineNote>('PUT', `/songs/${id}/timeline-notes/${noteId}`, patch),
+  deleteTimelineNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/timeline-notes/${noteId}`),
 
   startRecording: (includePreRoll: boolean, name?: string) =>
     request<Song>('POST', '/recording/start', { includePreRoll, name }),

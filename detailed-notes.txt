@@ -45,7 +45,7 @@ Aligning is never automatic by default - a user must explicitly tell the server 
 Once synced and a song ends, autoplay still applies: automatically moves to acquiring-sync on the next song in show order.
 Two acquire modes:
 - acquire-sync-start: scans only the first ACQUIRE_START_RANGE seconds of the reference song (default 20s, configurable/toggleable). This is the common case.
-- acquire-sync-middle: user scrolls the Track Container to the desired region and hits "sync here" - the current viewport is the scan range (not drag-select, not manual numeric input).
+- acquire-sync-middle: user scrolls the Timeline Container to the desired region and hits "sync here" - the current viewport is the scan range (not drag-select, not manual numeric input).
 Acquiring-sync never times out on its own - keeps re-scanning indefinitely until it locks or the user changes target.
 Selecting a new align target while already acquiring/synced on another song immediately cancels the old one and starts the new one (last request wins).
 A separate explicit "stop sync" action exists to return to no-target/ready state without picking a new song.
@@ -58,7 +58,7 @@ Client does not snap to each new position - eases from current rendered position
 Server broadcasts a "confidence_bars" message every frame: list of candidate reference-frame positions and their scores (matches the research project's existing "candidates"/"debug_anchors" messages almost exactly, just renamed/formalized).
 Sent during acquiring-sync (full scan range's candidates).
 Also sent during synced/tracking, limited to a +/-3 second window around the current locked position (not just as an early-warning-on-confidence-drop signal - always shown).
-Client renders these on the Track.
+Client renders these on the Timeline.
 
 ## Live audio "listen" feature (separate from the above chroma path)
 Two tiers:

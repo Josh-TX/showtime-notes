@@ -20,7 +20,7 @@ class SongStatus(str, Enum):
     SYNCED = "synced"
 
 
-class TrackNote(ApiModel):
+class TimelineNote(ApiModel):
     id: str
     time_seconds: float
     text: str
@@ -32,7 +32,7 @@ class Song(ApiModel):
     status: SongStatus
     duration_seconds: float | None = None
     free_notes: str = ""
-    track_notes: list[TrackNote] = []
+    timeline_notes: list[TimelineNote] = []
     processing_progress: float | None = None  # 0-1, set while status == processing
     processing_error: str | None = None
 

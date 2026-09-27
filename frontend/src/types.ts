@@ -5,7 +5,7 @@ export type SongStatus =
   | 'acquiring-sync'
   | 'synced'
 
-export interface TrackNote {
+export interface TimelineNote {
   id: string
   timeSeconds: number
   text: string
@@ -17,7 +17,7 @@ export interface Song {
   status: SongStatus
   durationSeconds: number | null
   freeNotes: string
-  trackNotes: TrackNote[]
+  timelineNotes: TimelineNote[]
   processingProgress: number | null
   processingError: string | null
 }

@@ -17,14 +17,14 @@ const store = useShowStore()
 const containerEl = ref<HTMLDivElement | null>(null)
 const waveCanvas = ref<HTMLCanvasElement | null>(null)
 const acquireConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
-const trackConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
+const timelineConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
 
 const viewportWidthPx = ref(400)
 const viewportHeightPx = ref(200)
 const autoScroll = ref(true)
 const displayPosition = ref<number | null>(null)
-// ref-seconds at local x=0 of trackConfidenceCanvas, from whichever bars snapshot is currently drawn into it
-const trackWindowOriginSeconds = ref<number | null>(null)
+// ref-seconds at local x=0 of timelineConfidenceCanvas, from whichever bars snapshot is currently drawn into it
+const timelineWindowOriginSeconds = ref<number | null>(null)
 
 const durationSeconds = computed(() => {
   const fromPeaks = (store.waveform?.peaks.vocals.length ?? 0) / PEAKS_PER_SECOND
@@ -33,7 +33,7 @@ const durationSeconds = computed(() => {
 const canvasWidthPx = computed(() => Math.max(1, durationSeconds.value * PIXELS_PER_SECOND))
 const startWidthPx = computed(() => Math.round(viewportWidthPx.value * BAR_OFFSET_PERCENT))
 const endWidthPx = computed(() => Math.round(viewportWidthPx.value * (1 - BAR_OFFSET_PERCENT)))
-const trackWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value + endWidthPx.value)
+const timelineWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value + endWidthPx.value)
 const totalHeightPx = computed(() => viewportHeightPx.value)
 
 const positionLeftPx = computed(() =>
@@ -41,14 +41,14 @@ const positionLeftPx = computed(() =>
 )
 
 const barStepPx = PIXELS_PER_SECOND / PEAKS_PER_SECOND
-const trackWidthConfidencePx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx))
+const timelineWidthConfidencePx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx))
 // Mirrors positionLeftPx's anchor extrapolation, offset by where the drawn window's first bar sits relative to
 // the anchor - so the window glides in lockstep with the position bar instead of jumping on every new snapshot.
-const trackLeftPx = computed(() => {
+const timelineLeftPx = computed(() => {
   const anchor = store.positionAnchor
-  if (anchor === null || trackWindowOriginSeconds.value === null || displayPosition.value === null) return null
+  if (anchor === null || timelineWindowOriginSeconds.value === null || displayPosition.value === null) return null
   const drift = displayPosition.value - anchor.refSeconds
-  return startWidthPx.value + (trackWindowOriginSeconds.value + drift) * PIXELS_PER_SECOND
+  return startWidthPx.value + (timelineWindowOriginSeconds.value + drift) * PIXELS_PER_SECOND
 })
 
 function timeToLeft(seconds: number): number {
@@ -119,17 +119,17 @@ function drawAcquireConfidence(): void {
 }
 
 // Tracking: bars are a small window around the current estimate. Draw them once into a snugly-sized canvas in
-// local coordinates, then let trackLeftPx (computed every tick, like positionLeftPx) carry it across the screen.
-function drawTrackConfidence(): void {
-  const canvas = trackConfidenceCanvas.value
+// local coordinates, then let timelineLeftPx (computed every tick, like positionLeftPx) carry it across the screen.
+function drawTimelineConfidence(): void {
+  const canvas = timelineConfidenceCanvas.value
   if (!canvas) return
   const bars = store.confidenceBars
   if (store.positionAnchor === null || !bars.length) {
-    trackWindowOriginSeconds.value = null
+    timelineWindowOriginSeconds.value = null
     return
   }
-  trackWindowOriginSeconds.value = bars[0].refSeconds
-  canvas.width = trackWidthConfidencePx.value
+  timelineWindowOriginSeconds.value = bars[0].refSeconds
+  canvas.width = timelineWidthConfidencePx.value
   canvas.height = totalHeightPx.value
   const ctx = canvas.getContext('2d')
   if (!ctx) return
@@ -149,7 +149,7 @@ function refreshLayout(): void {
   viewportHeightPx.value = containerEl.value?.clientHeight ?? 200
   drawWaveform()
   drawAcquireConfidence()
-  drawTrackConfidence()
+  drawTimelineConfidence()
 }
 
 function tick(): void {
@@ -167,13 +167,13 @@ function tick(): void {
   rafId = requestAnimationFrame(tick)
 }
 
-function onTrackDoubleClick(event: MouseEvent): void {
+function onTimelineDoubleClick(event: MouseEvent): void {
   if (!store.selectedSong) return
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const x = event.clientX - rect.left - startWidthPx.value
   const seconds = Math.max(0, x / PIXELS_PER_SECOND)
-  const text = window.prompt('Track note text:')
-  if (text) api.addTrackNote(store.selectedSong.id, seconds, text)
+  const text = window.prompt('Timeline note text:')
+  if (text) api.addTimelineNote(store.selectedSong.id, seconds, text)
 }
 
 function editNote(noteId: string, currentText: string): void {
@@ -181,9 +181,9 @@ function editNote(noteId: string, currentText: string): void {
   const text = window.prompt('Edit note (empty to delete):', currentText)
   if (text === null) return
   if (text === '') {
-    api.deleteTrackNote(store.selectedSong.id, noteId)
+    api.deleteTimelineNote(store.selectedSong.id, noteId)
   } else {
-    api.updateTrackNote(store.selectedSong.id, noteId, { text })
+    api.updateTimelineNote(store.selectedSong.id, noteId, { text })
   }
 }
 
@@ -193,7 +193,7 @@ watch(
   () =>
     nextTick(() => {
       drawAcquireConfidence()
-      drawTrackConfidence()
+      drawTimelineConfidence()
     }),
 )
 
@@ -212,17 +212,17 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="track-wrap">
-    <div class="track-toolbar">
+  <div class="timeline-wrap">
+    <div class="timeline-toolbar">
       <label><input type="checkbox" v-model="autoScroll" /> auto-scroll</label>
     </div>
-    <div class="track-outer">
-      <div class="track-container" ref="containerEl">
+    <div class="timeline-outer">
+      <div class="timeline-container" ref="containerEl">
         <div
           v-if="store.selectedSong"
-          class="track"
-          :style="{ width: `${trackWidthPx}px` }"
-          @dblclick="onTrackDoubleClick"
+          class="timeline"
+          :style="{ width: `${timelineWidthPx}px` }"
+          @dblclick="onTimelineDoubleClick"
         >
           <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
           <canvas ref="waveCanvas" class="wave-canvas" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }" />
@@ -235,14 +235,14 @@ onUnmounted(() => {
           />
           <canvas
             v-else
-            ref="trackConfidenceCanvas"
+            ref="timelineConfidenceCanvas"
             class="confidence-overlay"
-            :style="{ left: `${trackLeftPx ?? startWidthPx}px`, width: `${trackWidthConfidencePx}px`, height: `${totalHeightPx}px` }"
+            :style="{ left: `${timelineLeftPx ?? startWidthPx}px`, width: `${timelineWidthConfidencePx}px`, height: `${totalHeightPx}px` }"
           />
           <div
-            v-for="note in store.selectedSong.trackNotes"
+            v-for="note in store.selectedSong.timelineNotes"
             :key="note.id"
-            class="track-note"
+            class="timeline-note"
             :style="{ left: `${timeToLeft(note.timeSeconds)}px` }"
             @click="editNote(note.id, note.text)"
           >
@@ -256,29 +256,29 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.track-wrap {
+.timeline-wrap {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-.track-toolbar {
+.timeline-toolbar {
   padding: 0.2rem 0.6rem;
   font-size: 0.8rem;
   border-bottom: 1px solid #2a2a2a;
 }
-.track-outer {
+.timeline-outer {
   position: relative;
   flex: 1;
   overflow: hidden;
 }
-.track-container {
+.timeline-container {
   width: 100%;
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   position: relative;
 }
-.track {
+.timeline {
   position: relative;
   display: flex;
   height: 100%;
@@ -307,7 +307,7 @@ onUnmounted(() => {
   background: #ff3b3b;
   z-index: 3;
 }
-.track-note {
+.timeline-note {
   position: absolute;
   top: 4px;
   transform: translateX(-50%);

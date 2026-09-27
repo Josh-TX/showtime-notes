@@ -4,7 +4,7 @@ import { useShowStore } from '../store/show'
 
 const PIXELS_PER_SECOND = 60
 const LIVE_PEAKS_PER_SECOND = 20
-const TRACK_HEIGHT = 160
+const TIMELINE_HEIGHT = 160
 const LIVE_ALIGN_FRACTION = 0.75
 
 const store = useShowStore()
@@ -16,9 +16,9 @@ const leftPaddingPx = ref(400)
 const autoScroll = ref(true)
 
 const elapsedSeconds = computed(() => store.recordingPeaks.length / LIVE_PEAKS_PER_SECOND)
-const trackWidthPx = computed(() => Math.max(1, elapsedSeconds.value * PIXELS_PER_SECOND))
-const trackTotalWidthPx = computed(() => leftPaddingPx.value + trackWidthPx.value)
-const liveEdgeLeftPx = computed(() => leftPaddingPx.value + trackWidthPx.value)
+const timelineWidthPx = computed(() => Math.max(1, elapsedSeconds.value * PIXELS_PER_SECOND))
+const timelineTotalWidthPx = computed(() => leftPaddingPx.value + timelineWidthPx.value)
+const liveEdgeLeftPx = computed(() => leftPaddingPx.value + timelineWidthPx.value)
 
 function formatElapsed(seconds: number): string {
   const total = Math.floor(seconds)
@@ -36,13 +36,13 @@ function resizePadding(): void {
 function drawWaveform(): void {
   const canvas = waveCanvas.value
   if (!canvas) return
-  canvas.width = trackWidthPx.value
-  canvas.height = TRACK_HEIGHT
+  canvas.width = timelineWidthPx.value
+  canvas.height = TIMELINE_HEIGHT
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  const mid = TRACK_HEIGHT / 2
+  const mid = TIMELINE_HEIGHT / 2
   const step = PIXELS_PER_SECOND / LIVE_PEAKS_PER_SECOND
   ctx.fillStyle = '#4a9eff'
   const peaks = store.recordingPeaks
@@ -79,13 +79,13 @@ onUnmounted(() => resizeObserver?.disconnect())
 </script>
 
 <template>
-  <div class="track-wrap">
-    <div class="track-toolbar">
+  <div class="timeline-wrap">
+    <div class="timeline-toolbar">
       <label><input type="checkbox" v-model="autoScroll" /> follow live</label>
       <span class="elapsed">{{ formatElapsed(elapsedSeconds) }}</span>
     </div>
-    <div class="track-container" ref="containerEl">
-      <div class="track" :style="{ width: `${trackTotalWidthPx}px`, height: `${TRACK_HEIGHT}px` }">
+    <div class="timeline-container" ref="containerEl">
+      <div class="timeline" :style="{ width: `${timelineTotalWidthPx}px`, height: `${TIMELINE_HEIGHT}px` }">
         <canvas ref="waveCanvas" class="wave-canvas" :style="{ left: `${leftPaddingPx}px` }" />
         <div class="live-edge" :style="{ left: `${liveEdgeLeftPx}px` }" />
       </div>
@@ -94,12 +94,12 @@ onUnmounted(() => resizeObserver?.disconnect())
 </template>
 
 <style scoped>
-.track-wrap {
+.timeline-wrap {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-.track-toolbar {
+.timeline-toolbar {
   padding: 0.2rem 0.6rem;
   font-size: 0.8rem;
   border-bottom: 1px solid #2a2a2a;
@@ -111,13 +111,13 @@ onUnmounted(() => resizeObserver?.disconnect())
   font-family: monospace;
   color: #ccc;
 }
-.track-container {
+.timeline-container {
   flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
   position: relative;
 }
-.track {
+.timeline {
   position: relative;
 }
 .wave-canvas {
