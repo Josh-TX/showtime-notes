@@ -16,8 +16,7 @@ class SongStatus(str, Enum):
     RECORDING = "recording"
     PROCESSING = "processing"
     READY = "ready"
-    ACQUIRING_SYNC = "acquiring-sync"
-    SYNCED = "synced"
+    SYNCING = "syncing"  # this song is the sync target; see SyncState.phase for acquiring vs. tracking
 
 
 class TimelineNote(ApiModel):
@@ -53,17 +52,27 @@ class AcquireMode(str, Enum):
 
 class SyncStatus(str, Enum):
     NONE = "none"
-    ACQUIRING = "acquiring-sync"
-    SYNCED = "synced"
+    SYNCING = "syncing"
+
+
+class SyncPhase(str, Enum):
+    """Sub-state of SyncStatus.SYNCING: ACQUIRING while searching for a lock, TRACKING once locked on."""
+
+    ACQUIRING = "acquiring"
+    TRACKING = "tracking"
 
 
 class ConfidenceBar(ApiModel):
+    """One candidate-position score. While acquiring, a full snapshot spans the whole scan range at fixed
+    ref-song coordinates; while tracking, a snapshot spans a small window around the current position estimate."""
+
     ref_seconds: float
     score: float
 
 
 class SyncState(ApiModel):
     status: SyncStatus = SyncStatus.NONE
+    phase: SyncPhase | None = None  # None iff status is NONE
     target_song_id: str | None = None
     acquire_mode: AcquireMode | None = None
     anchor_ref_seconds: float | None = None  # ref-song time at anchor_wallclock_ms; None while acquiring

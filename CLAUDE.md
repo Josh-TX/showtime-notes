@@ -12,9 +12,12 @@ Song - The core entity of showtime notes. The song contains audio we recorded, i
 Buffer - The live audio that the server stores. Normally is just a few seconds, but can be larger if recording.
 Recording - Used to create songs. Forces the buffer to preserve audio from moment you start recording. 1 acive recording per server, but can be managed by any client.
 Processing - When a recording is finished and saved, it has to be processed, which entails computing the vocal/novocal split and the beats.
-Song status - A song could be in the following statuses: recording, finished-recording, processing, ready, synced, acquiring-sync.
-acquiring-sync - We're trying to match live with a position in a recorded song, but we haven't acquired a confident lock yet.
-synced - We have successfully matched live to a specific position of a recorded song. We can continuously move the position bar to match live, and make minor adjustments if live is a slightly different tempo.
+Song status - A song could be in the following statuses: recording, finished-recording, processing, ready, syncing.
+Syncing - A song is "syncing" while it's the active sync target, whether or not a lock has been acquired yet. Split into two phases (see Phase below).
+Phase - Sub-state of syncing: "acquiring" or "tracking".
+acquiring (phase) - We're trying to match live with a position in a recorded song, but we haven't acquired a confident lock yet.
+tracking (phase) - We have successfully matched live to a specific position of a recorded song. Minor tempo drift is allowed, but otherwise tries to avoid jumping over 100ms at once. 
+Confidence Bars - Bars drawn over the timeline showing candidate-match scores from the aligner. Their meaning depends on phase: acquiring confidence bars span the whole scan range at fixed ref-time coordinates (no lock yet to glide with); tracking confidence bars span a small window around the current position estimate and glide along with the position bar.
 
 Notes - text information associate with a song. Can either be "Free Notes" or "Timeline Notes"
 Free Notes - A large text area of free-form text associated with a specific song (no time element).
@@ -43,5 +46,5 @@ The bottom half of the screen has the timeline plus some info/controls above the
 The top-left contains the "menu". It contains a vertical stack of rows, and each row is a song. The top top has an option to record.
 The top right contains the "selected song" information and free notes.
 
-Synced should be indicated by a svg icon of a straight arrow going right and below that an arrow going left. The arrows are yellow when acquiring-sync, and green when synced.
+Syncing should be indicated by a svg icon of a straight arrow going right and below that an arrow going left. The arrows are yellow during the acquiring phase, and green during the tracking phase.
 

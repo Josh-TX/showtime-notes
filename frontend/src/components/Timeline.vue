@@ -16,15 +16,15 @@ const store = useShowStore()
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const waveCanvas = ref<HTMLCanvasElement | null>(null)
-const acquireConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
-const timelineConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
+const acquiringBarsCanvas = ref<HTMLCanvasElement | null>(null)
+const trackingBarsCanvas = ref<HTMLCanvasElement | null>(null)
 
 const viewportWidthPx = ref(400)
 const viewportHeightPx = ref(200)
 const autoScroll = ref(true)
 const displayPosition = ref<number | null>(null)
-// ref-seconds at local x=0 of timelineConfidenceCanvas, from whichever bars snapshot is currently drawn into it
-const timelineWindowOriginSeconds = ref<number | null>(null)
+// ref-seconds at local x=0 of trackingBarsCanvas, from whichever bars snapshot is currently drawn into it
+const trackingBarsOriginSeconds = ref<number | null>(null)
 
 const durationSeconds = computed(() => {
   const fromPeaks = (store.waveform?.peaks.vocals.length ?? 0) / PEAKS_PER_SECOND
@@ -41,14 +41,14 @@ const positionLeftPx = computed(() =>
 )
 
 const barStepPx = PIXELS_PER_SECOND / PEAKS_PER_SECOND
-const timelineWidthConfidencePx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx))
+const trackingBarsWidthPx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx))
 // Mirrors positionLeftPx's anchor extrapolation, offset by where the drawn window's first bar sits relative to
 // the anchor - so the window glides in lockstep with the position bar instead of jumping on every new snapshot.
-const timelineLeftPx = computed(() => {
+const trackingBarsLeftPx = computed(() => {
   const anchor = store.positionAnchor
-  if (anchor === null || timelineWindowOriginSeconds.value === null || displayPosition.value === null) return null
+  if (anchor === null || trackingBarsOriginSeconds.value === null || displayPosition.value === null) return null
   const drift = displayPosition.value - anchor.refSeconds
-  return startWidthPx.value + (timelineWindowOriginSeconds.value + drift) * PIXELS_PER_SECOND
+  return startWidthPx.value + (trackingBarsOriginSeconds.value + drift) * PIXELS_PER_SECOND
 })
 
 function timeToLeft(seconds: number): number {
@@ -97,17 +97,17 @@ function drawWaveform(): void {
   drawPeaks(waveform.peaks.novocals, novocalsCenter, '#7a7a7a')
 }
 
-// Acquiring: no lock yet, so bars span the whole scan range and sit at fixed absolute ref-time coordinates,
-// same as the waveform - there's no "current position" for them to glide with.
-function drawAcquireConfidence(): void {
-  const canvas = acquireConfidenceCanvas.value
+// Acquiring-phase confidence bars: no lock yet, so they span the whole scan range and sit at fixed absolute
+// ref-time coordinates, same as the waveform - there's no "current position" for them to glide with.
+function drawAcquiringConfidenceBars(): void {
+  const canvas = acquiringBarsCanvas.value
   if (!canvas) return
   canvas.width = canvasWidthPx.value
   canvas.height = totalHeightPx.value
   const ctx = canvas.getContext('2d')
   if (!ctx) return
   ctx.clearRect(0, 0, canvas.width, canvas.height)
-  if (store.positionAnchor !== null || !store.confidenceBars.length) return
+  if (store.syncPhase !== 'acquiring' || !store.confidenceBars.length) return
 
   const height = canvas.height
   ctx.fillStyle = `rgba(224, 195, 62, ${CONFIDENCE_BAR_ALPHA})`
@@ -118,18 +118,19 @@ function drawAcquireConfidence(): void {
   }
 }
 
-// Tracking: bars are a small window around the current estimate. Draw them once into a snugly-sized canvas in
-// local coordinates, then let timelineLeftPx (computed every tick, like positionLeftPx) carry it across the screen.
-function drawTimelineConfidence(): void {
-  const canvas = timelineConfidenceCanvas.value
+// Tracking-phase confidence bars: a small window around the current position estimate. Drawn once into a
+// snugly-sized canvas in local coordinates, then trackingBarsLeftPx (computed every tick, like positionLeftPx)
+// carries it across the screen.
+function drawTrackingConfidenceBars(): void {
+  const canvas = trackingBarsCanvas.value
   if (!canvas) return
   const bars = store.confidenceBars
-  if (store.positionAnchor === null || !bars.length) {
-    timelineWindowOriginSeconds.value = null
+  if (store.syncPhase !== 'tracking' || !bars.length) {
+    trackingBarsOriginSeconds.value = null
     return
   }
-  timelineWindowOriginSeconds.value = bars[0].refSeconds
-  canvas.width = timelineWidthConfidencePx.value
+  trackingBarsOriginSeconds.value = bars[0].refSeconds
+  canvas.width = trackingBarsWidthPx.value
   canvas.height = totalHeightPx.value
   const ctx = canvas.getContext('2d')
   if (!ctx) return
@@ -148,8 +149,8 @@ function refreshLayout(): void {
   viewportWidthPx.value = containerEl.value?.clientWidth ?? 400
   viewportHeightPx.value = containerEl.value?.clientHeight ?? 200
   drawWaveform()
-  drawAcquireConfidence()
-  drawTimelineConfidence()
+  drawAcquiringConfidenceBars()
+  drawTrackingConfidenceBars()
 }
 
 function tick(): void {
@@ -189,11 +190,11 @@ function editNote(noteId: string, currentText: string): void {
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
 watch(
-  () => store.confidenceBars,
+  () => [store.confidenceBars, store.syncPhase],
   () =>
     nextTick(() => {
-      drawAcquireConfidence()
-      drawTimelineConfidence()
+      drawAcquiringConfidenceBars()
+      drawTrackingConfidenceBars()
     }),
 )
 
@@ -228,16 +229,16 @@ onUnmounted(() => {
           <canvas ref="waveCanvas" class="wave-canvas" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }" />
           <div class="end-area" :style="{ width: `${endWidthPx}px` }"></div>
           <canvas
-            v-if="store.positionAnchor === null"
-            ref="acquireConfidenceCanvas"
+            v-if="store.syncPhase === 'tracking'"
+            ref="trackingBarsCanvas"
             class="confidence-overlay"
-            :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }"
+            :style="{ left: `${trackingBarsLeftPx ?? startWidthPx}px`, width: `${trackingBarsWidthPx}px`, height: `${totalHeightPx}px` }"
           />
           <canvas
             v-else
-            ref="timelineConfidenceCanvas"
+            ref="acquiringBarsCanvas"
             class="confidence-overlay"
-            :style="{ left: `${timelineLeftPx ?? startWidthPx}px`, width: `${timelineWidthConfidencePx}px`, height: `${totalHeightPx}px` }"
+            :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }"
           />
           <div
             v-for="note in store.selectedSong.timelineNotes"

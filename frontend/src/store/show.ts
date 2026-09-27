@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
 import { ws } from '../ws'
-import type { ConfidenceBar, Song, ShowInfo, SongSummary, Waveform } from '../types'
+import type { ConfidenceBar, Song, ShowInfo, SongSummary, SyncPhase, Waveform } from '../types'
 
-const HAS_AUDIO_STATUSES = new Set(['ready', 'acquiring-sync', 'synced'])
+const HAS_AUDIO_STATUSES = new Set(['ready', 'syncing'])
 
 function anchorFromSync(sync: { anchorRefSeconds: number | null; anchorWallclockMs: number | null }) {
   return sync.anchorRefSeconds !== null && sync.anchorWallclockMs !== null
@@ -23,6 +23,7 @@ export const useShowStore = defineStore('show', {
     recordingPeaks: [] as number[],
     positionAnchor: null as { refSeconds: number; wallclockMs: number } | null,
     confidenceBars: [] as ConfidenceBar[],
+    syncPhase: null as SyncPhase | null,
     loudness: 0,
     isListener: false,
     wantsLiveAudio: false,
@@ -49,9 +50,11 @@ export const useShowStore = defineStore('show', {
         if (payload.sync.targetSongId !== this.selectedSongId) {
           this.positionAnchor = null
           this.confidenceBars = []
+          this.syncPhase = null
         } else {
           this.positionAnchor = anchorFromSync(payload.sync)
           this.confidenceBars = payload.sync.bars
+          this.syncPhase = payload.sync.phase
         }
       })
       ws.on('song_update', (payload: Song) => this._onSongUpdate(payload))
@@ -60,10 +63,17 @@ export const useShowStore = defineStore('show', {
       })
       ws.on(
         'sync_update',
-        (payload: { targetSongId: string; anchorRefSeconds: number | null; anchorWallclockMs: number | null; bars: ConfidenceBar[] }) => {
+        (payload: {
+          targetSongId: string
+          phase: SyncPhase
+          anchorRefSeconds: number | null
+          anchorWallclockMs: number | null
+          bars: ConfidenceBar[]
+        }) => {
           if (payload.targetSongId !== this.selectedSongId) return
           this.positionAnchor = anchorFromSync(payload)
           this.confidenceBars = payload.bars
+          this.syncPhase = payload.phase
         },
       )
       ws.on('loudness', (payload: { level: number }) => {
@@ -101,9 +111,11 @@ export const useShowStore = defineStore('show', {
       if (this.show?.sync.targetSongId === id) {
         this.positionAnchor = anchorFromSync(this.show.sync)
         this.confidenceBars = this.show.sync.bars
+        this.syncPhase = this.show.sync.phase
       } else {
         this.positionAnchor = null
         this.confidenceBars = []
+        this.syncPhase = null
       }
       this.waveform = null
       this.recordingPeaks = []
@@ -123,6 +135,7 @@ export const useShowStore = defineStore('show', {
       this.recordingPeaks = []
       this.positionAnchor = null
       this.confidenceBars = []
+      this.syncPhase = null
     },
     cancelStartRecording(): void {
       this.isStartingRecording = false

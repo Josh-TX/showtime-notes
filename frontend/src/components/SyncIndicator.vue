@@ -6,20 +6,18 @@ import SyncArrows from './SyncArrows.vue'
 const store = useShowStore()
 
 const color = computed(() => {
-  switch (store.show?.sync.status) {
-    case 'synced':
-      return '#3ecf5f'
-    case 'acquiring-sync':
-      return '#e0c33e'
-    default:
-      return '#666'
-  }
+  if (store.show?.sync.status !== 'syncing') return '#666'
+  return store.show.sync.phase === 'tracking' ? '#3ecf5f' : '#e0c33e'
 })
 
 const targetId = computed(() => store.show?.sync.targetSongId ?? null)
 const targetName = computed(() => {
   const id = targetId.value
   return id ? store.show?.songs.find((s) => s.id === id)?.name : null
+})
+const statusTitle = computed(() => {
+  if (!targetName.value) return 'Not synced'
+  return store.show?.sync.phase === 'tracking' ? `Synced with: ${targetName.value}` : `Acquiring sync with: ${targetName.value}`
 })
 
 function selectSyncedSong(): void {
@@ -33,7 +31,7 @@ function selectSyncedSong(): void {
     :class="{ clickable: !!targetId }"
     :role="targetId ? 'button' : undefined"
     :tabindex="targetId ? 0 : undefined"
-    :title="targetName ? `Synced with: ${targetName}` : 'Not synced'"
+    :title="statusTitle"
     @click="selectSyncedSong"
     @keydown.enter="selectSyncedSong"
   >

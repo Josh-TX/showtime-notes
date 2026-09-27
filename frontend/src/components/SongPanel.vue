@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
+import SyncArrows from './SyncArrows.vue'
 
 const LIVE_PEAKS_PER_SECOND = 20
 
@@ -70,6 +71,8 @@ async function deleteSong(): Promise<void> {
 }
 
 const isSynced = computed(() => store.show?.sync.targetSongId === store.selectedSong?.id)
+const syncPhase = computed(() => (isSynced.value ? store.show?.sync.phase ?? null : null))
+const syncColor = computed(() => (syncPhase.value === 'tracking' ? '#3ecf5f' : '#e0c33e'))
 
 async function toggleSync(): Promise<void> {
   const song = store.selectedSong
@@ -106,17 +109,23 @@ async function toggleSync(): Promise<void> {
         <button @click="stopAndDiscard">Stop &amp; Discard</button>
       </div>
     </template>
-    <div v-else class="title-row">
-      <h2>{{ store.selectedSong.name }}</h2>
-      <button
-        v-if="['ready', 'acquiring-sync', 'synced'].includes(store.selectedSong.status)"
-        class="sync-btn"
-        @click="toggleSync"
-      >
-        {{ isSynced ? 'Unsync' : 'Sync' }}
-      </button>
-      <button class="delete-btn" @click="deleteSong">Delete</button>
-    </div>
+    <template v-else>
+      <div class="title-row">
+        <h2>{{ store.selectedSong.name }}</h2>
+        <button class="delete-btn" @click="deleteSong">Delete</button>
+      </div>
+      <div v-if="['ready', 'syncing'].includes(store.selectedSong.status)" class="sync-row">
+        <button class="sync-btn" @click="toggleSync">
+          {{ isSynced ? 'Unsync' : 'Sync' }}
+        </button>
+        <template v-if="isSynced">
+          <SyncArrows :color="syncColor" :size="14" />
+          <span class="phase-badge" :style="{ color: syncColor, borderColor: syncColor }">
+            {{ syncPhase === 'tracking' ? 'Tracking' : 'Acquiring' }}
+          </span>
+        </template>
+      </div>
+    </template>
     <p v-if="store.selectedSong.status === 'processing'">
       Processing… {{ Math.round((store.selectedSong.processingProgress ?? 0) * 100) }}%
     </p>
@@ -163,10 +172,23 @@ h2 {
   font-size: 0.8rem;
   padding: 0.2rem 0.6rem;
 }
+.sync-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
 .sync-btn {
   flex-shrink: 0;
   font-size: 0.8rem;
   padding: 0.2rem 0.6rem;
+}
+.phase-badge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid;
+  border-radius: 1rem;
 }
 textarea {
   flex: 1;

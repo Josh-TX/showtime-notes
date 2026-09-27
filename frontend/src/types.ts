@@ -2,8 +2,7 @@ export type SongStatus =
   | 'recording'
   | 'processing'
   | 'ready'
-  | 'acquiring-sync'
-  | 'synced'
+  | 'syncing'
 
 export interface TimelineNote {
   id: string
@@ -30,10 +29,13 @@ export interface SongSummary {
 }
 
 export type AcquireMode = 'acquire-sync-start' | 'acquire-sync-middle'
-export type SyncStatus = 'none' | 'acquiring-sync' | 'synced'
+export type SyncStatus = 'none' | 'syncing'
+// Sub-state of SyncStatus 'syncing': 'acquiring' while searching for a lock, 'tracking' once locked on.
+export type SyncPhase = 'acquiring' | 'tracking'
 
 export interface SyncState {
   status: SyncStatus
+  phase: SyncPhase | null
   targetSongId: string | null
   acquireMode: AcquireMode | null
   anchorRefSeconds: number | null

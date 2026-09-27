@@ -10,8 +10,8 @@ function select(song: SongSummary): void {
   store.selectSong(song.id)
 }
 
-function syncColor(song: SongSummary): string {
-  return song.status === 'synced' ? '#3ecf5f' : '#e0c33e'
+function targetSyncColor(): string {
+  return store.show?.sync.phase === 'tracking' ? '#3ecf5f' : '#e0c33e'
 }
 </script>
 
@@ -28,11 +28,7 @@ function syncColor(song: SongSummary): string {
         <span class="name">{{ song.name }}</span>
         <span v-if="song.status === 'recording'" class="rec-dot" />
         <span v-else-if="song.status === 'processing'" class="spinner" />
-        <SyncArrows
-          v-else-if="song.status === 'synced' || song.status === 'acquiring-sync'"
-          :color="syncColor(song)"
-          :size="14"
-        />
+        <SyncArrows v-else-if="song.status === 'syncing'" :color="targetSyncColor()" :size="14" />
       </div>
     </div>
     <NewRecordingButton />

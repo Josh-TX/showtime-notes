@@ -6,7 +6,7 @@ import time
 from . import chroma, storage, ws_manager
 from .aligner import LiveAligner, StepEvent
 from .config import CAPTURE_SR
-from .models import AcquireMode, ConfidenceBar, SongStatus, SyncState, SyncStatus
+from .models import AcquireMode, ConfidenceBar, SongStatus, SyncPhase, SyncState, SyncStatus
 from .resample import StreamResampler
 from .state import state
 
@@ -16,7 +16,7 @@ SONG_END_MARGIN_SECONDS = 0.15
 async def start_sync(song_id: str, mode: AcquireMode, viewport_lo_s: float | None = None, viewport_hi_s: float | None = None) -> None:
     if song_id not in state.songs:
         raise ValueError("no such song")
-    if state.songs[song_id].status not in (SongStatus.READY, SongStatus.ACQUIRING_SYNC, SongStatus.SYNCED):
+    if state.songs[song_id].status not in (SongStatus.READY, SongStatus.SYNCING):
         raise ValueError("song is not ready to sync")
 
     ref_features = storage.load_chroma(song_id)
@@ -32,10 +32,10 @@ async def start_sync(song_id: str, mode: AcquireMode, viewport_lo_s: float | Non
     state.live_aligner = LiveAligner(ref_features, lo, hi)
     state.chroma_stream = chroma.ChromaStream()
     state.chroma_resampler = StreamResampler(CAPTURE_SR, chroma.SR)
-    state.sync = SyncState(status=SyncStatus.ACQUIRING, target_song_id=song_id, acquire_mode=mode)
+    state.sync = SyncState(status=SyncStatus.SYNCING, phase=SyncPhase.ACQUIRING, target_song_id=song_id, acquire_mode=mode)
 
     song = state.songs[song_id]
-    song.status = SongStatus.ACQUIRING_SYNC
+    song.status = SongStatus.SYNCING
     await state.save_and_broadcast_song(song)
     await state.broadcast_show()
 
@@ -53,7 +53,7 @@ async def _clear_previous_target(except_song_id: str | None) -> None:
     prev_id = state.sync.target_song_id
     if prev_id and prev_id != except_song_id and prev_id in state.songs:
         song = state.songs[prev_id]
-        if song.status in (SongStatus.ACQUIRING_SYNC, SongStatus.SYNCED):
+        if song.status == SongStatus.SYNCING:
             song.status = SongStatus.READY
             await state.save_and_broadcast_song(song)
 
@@ -78,6 +78,9 @@ async def _handle_step_event(event: StepEvent) -> None:
     if song_id is None:
         return
 
+    phase = SyncPhase.TRACKING if event.mode == "tracking" else SyncPhase.ACQUIRING
+    state.sync.phase = phase
+
     if event.mode == "tracking" and event.position_seconds is not None:
         state.sync.anchor_ref_seconds = event.position_seconds
         state.sync.anchor_wallclock_ms = time.time() * 1000
@@ -91,24 +94,16 @@ async def _handle_step_event(event: StepEvent) -> None:
         "sync_update",
         {
             "targetSongId": song_id,
+            "phase": phase.value,
             "anchorRefSeconds": state.sync.anchor_ref_seconds,
             "anchorWallclockMs": state.sync.anchor_wallclock_ms,
             "bars": bars,
         },
     )
 
-    if event.just_locked:
-        state.sync.status = SyncStatus.SYNCED
-        song = state.songs[song_id]
-        song.status = SongStatus.SYNCED
-        await state.save_and_broadcast_song(song)
-        await state.broadcast_show()
-
-    if event.just_dropped:
-        state.sync.status = SyncStatus.ACQUIRING
-        song = state.songs[song_id]
-        song.status = SongStatus.ACQUIRING_SYNC
-        await state.save_and_broadcast_song(song)
+    # song.status stays SYNCING through both phases; only the (infrequent) phase transition needs a show_update
+    # so the song list / sync indicator can pick up the new color.
+    if event.just_locked or event.just_dropped:
         await state.broadcast_show()
 
     if event.mode == "tracking" and event.position_seconds is not None:
