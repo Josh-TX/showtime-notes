@@ -16,6 +16,7 @@ export const api = {
   getState: () => request<ShowInfo>('GET', '/state'),
   getSong: (id: string) => request<Song>('GET', `/songs/${id}`),
   getWaveform: (id: string) => request<Waveform>('GET', `/songs/${id}/waveform`),
+  getRecordingPeaks: (id: string) => request<{ peaks: number[] }>('GET', `/songs/${id}/recording-peaks`),
   audioUrl: (id: string, stem: 'original' | 'vocals' | 'novocals') => `/api/songs/${id}/audio/${stem}`,
 
   renameSong: (id: string, name: string) => request<Song>('POST', `/songs/${id}/rename`, { name }),
@@ -29,9 +30,8 @@ export const api = {
   deleteTrackNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/track-notes/${noteId}`),
 
   startRecording: (includePreRoll: boolean) => request<Song>('POST', '/recording/start', { includePreRoll }),
-  stopRecording: () => request<Song>('POST', '/recording/stop'),
-  discardRecording: () => request<void>('POST', '/recording/discard'),
-  confirmRecording: (name: string) => request<Song>('POST', '/recording/confirm', { name }),
+  stopAndSaveRecording: (name: string) => request<Song>('POST', '/recording/stop-and-save', { name }),
+  stopAndDiscardRecording: () => request<void>('POST', '/recording/stop-and-discard'),
 
   startSync: (songId: string, mode: AcquireMode, viewportLoSeconds?: number, viewportHiSeconds?: number) =>
     request<ShowInfo>('POST', '/sync/start', { songId, mode, viewportLoSeconds, viewportHiSeconds }),

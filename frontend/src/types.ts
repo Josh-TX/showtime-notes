@@ -1,6 +1,5 @@
 export type SongStatus =
   | 'recording'
-  | 'finished-recording'
   | 'processing'
   | 'ready'
   | 'acquiring-sync'

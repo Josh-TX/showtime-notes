@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
 
+const LIVE_PEAKS_PER_SECOND = 20
+
 const store = useShowStore()
 const freeNotes = ref('')
+const recordingName = ref('')
 let saveTimer: number | undefined
 
 watch(
   () => store.selectedSong?.id,
   () => {
     freeNotes.value = store.selectedSong?.freeNotes ?? ''
+    recordingName.value = store.selectedSong?.name ?? ''
   },
   { immediate: true },
 )
@@ -23,11 +27,49 @@ function onInput(): void {
     api.setFreeNotes(songId, freeNotes.value)
   }, 500)
 }
+
+const elapsed = computed(() => {
+  const total = Math.floor(store.recordingPeaks.length / LIVE_PEAKS_PER_SECOND)
+  const mm = Math.floor(total / 60)
+  const ss = total % 60
+  return `${mm}:${ss.toString().padStart(2, '0')}`
+})
+
+async function stopAndSave(): Promise<void> {
+  if (!recordingName.value.trim()) return
+  await api.stopAndSaveRecording(recordingName.value.trim())
+}
+
+async function stopAndDiscard(): Promise<void> {
+  if (!window.confirm('Discard this recording? This cannot be undone.')) return
+  await api.stopAndDiscardRecording()
+}
+
+async function deleteSong(): Promise<void> {
+  const song = store.selectedSong
+  if (!song) return
+  if (!window.confirm(`Delete "${song.name}"? This cannot be undone.`)) return
+  await api.deleteSong(song.id)
+}
 </script>
 
 <template>
   <div class="song-panel" v-if="store.selectedSong">
-    <h2>{{ store.selectedSong.name }}</h2>
+    <template v-if="store.selectedSong.status === 'recording'">
+      <div class="recording-header">
+        <span class="rec-dot" />
+        <input v-model="recordingName" class="name-input" placeholder="Recording name" />
+        <span class="elapsed">{{ elapsed }}</span>
+      </div>
+      <div class="recording-actions">
+        <button :disabled="!recordingName.trim()" @click="stopAndSave">Stop &amp; Save</button>
+        <button @click="stopAndDiscard">Stop &amp; Discard</button>
+      </div>
+    </template>
+    <div v-else class="title-row">
+      <h2>{{ store.selectedSong.name }}</h2>
+      <button class="delete-btn" @click="deleteSong">Delete</button>
+    </div>
     <p v-if="store.selectedSong.status === 'processing'">
       Processing… {{ Math.round((store.selectedSong.processingProgress ?? 0) * 100) }}%
     </p>
@@ -51,6 +93,23 @@ h2 {
   margin: 0 0 0.4rem;
   font-size: 1.1rem;
 }
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.title-row h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.delete-btn {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #e05050;
+  border-color: #5a2a2a;
+}
 textarea {
   flex: 1;
   resize: none;
@@ -62,5 +121,41 @@ textarea {
 }
 .error {
   color: #e05050;
+}
+.recording-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.name-input {
+  flex: 1;
+  font-size: 1.1rem;
+  background: #1c1c1c;
+  color: inherit;
+  border: 1px solid #333;
+  padding: 0.3rem 0.5rem;
+}
+.elapsed {
+  font-family: monospace;
+  color: #ccc;
+}
+.recording-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e04040;
+  flex-shrink: 0;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
 }
 </style>

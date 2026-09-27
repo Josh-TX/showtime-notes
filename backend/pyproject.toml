@@ -9,6 +9,8 @@ dependencies = [
     "pydantic>=2.9",
     "demucs @ git+https://github.com/adefossez/demucs#egg=demucs",
     "beat_this @ git+https://github.com/CPJKU/beat_this#egg=beat_this",
+    "torchaudio==2.2.2",
+    "soundfile>=0.12",
 ]
 
 [tool.uv]

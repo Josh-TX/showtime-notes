@@ -14,7 +14,6 @@ class ApiModel(BaseModel):
 
 class SongStatus(str, Enum):
     RECORDING = "recording"
-    FINISHED_RECORDING = "finished-recording"
     PROCESSING = "processing"
     READY = "ready"
     ACQUIRING_SYNC = "acquiring-sync"

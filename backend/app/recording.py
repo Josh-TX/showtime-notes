@@ -1,10 +1,11 @@
-"""Recording lifecycle: start (optionally seeded with the rolling pre-roll buffer) -> stop (user names/confirms,
-which kicks off processing) or discard (thrown away immediately, no processing). Managed by any client - not tied
-to a particular websocket connection, so it survives a client disconnecting mid-take."""
+"""Recording lifecycle: start (optionally seeded with the rolling pre-roll buffer) -> the take is named while still
+recording -> stop-and-save (kicks off processing) or stop-and-discard (thrown away immediately, no processing).
+Managed by any client - not tied to a particular websocket connection, so it survives a client disconnecting
+mid-take."""
 import asyncio
 import uuid
 
-from . import processing, storage
+from . import processing, storage, ws_manager
 from .audio_buffer import RecordingBuffer
 from .models import Song, SongStatus
 from .state import state
@@ -33,23 +34,18 @@ async def start_recording(include_pre_roll: bool) -> Song:
     return song
 
 
-def push_audio(samples) -> None:
+async def push_audio(samples) -> None:
     """Called from the listener audio-ingestion route for every chunk while a recording is active."""
-    if state.recording is not None:
-        state.recording.push(samples)
-
-
-async def stop_recording() -> Song:
     if state.recording is None or state.recording_song_id is None:
-        raise ValueError("no recording in progress")
-    song = state.songs[state.recording_song_id]
-    song.status = SongStatus.FINISHED_RECORDING
-    song.duration_seconds = state.recording.duration_seconds
-    await state.save_and_broadcast_song(song)
-    return song
+        return
+    new_peaks = state.recording.push(samples)
+    if new_peaks:
+        await ws_manager.manager.broadcast(
+            "recording_peaks", {"songId": state.recording_song_id, "peaks": new_peaks}
+        )
 
 
-async def discard_recording() -> None:
+async def stop_and_discard() -> None:
     if state.recording is None or state.recording_song_id is None:
         raise ValueError("no recording in progress")
     song_id = state.recording_song_id
@@ -63,20 +59,24 @@ async def discard_recording() -> None:
     await state.broadcast_show()
 
 
-async def confirm_and_process(name: str) -> Song:
+async def stop_and_save(name: str) -> Song:
     if state.recording is None or state.recording_song_id is None:
-        raise ValueError("no recording awaiting confirmation")
+        raise ValueError("no recording in progress")
+    if not name.strip():
+        raise ValueError("a name is required to save a recording")
     song_id = state.recording_song_id
     song = state.songs[song_id]
-    song.name = name
+    song.name = name.strip()
     song.status = SongStatus.PROCESSING
     song.processing_progress = 0.0
     song.processing_error = None
-    await state.save_and_broadcast_song(song)
-
+    duration = state.recording.duration_seconds
     pcm = state.recording.all_samples()
     state.recording = None
     state.recording_song_id = None
+    song.duration_seconds = duration
+    await state.save_and_broadcast_song(song)
+
     asyncio.create_task(_run_processing(song_id, pcm))
     return song
 
@@ -105,7 +105,6 @@ async def _run_processing(song_id: str, pcm) -> None:
         await state.save_and_broadcast_song(song)
     except Exception as e:
         song = state.songs[song_id]
-        song.status = SongStatus.FINISHED_RECORDING
         song.processing_progress = None
         song.processing_error = str(e)
         await state.save_and_broadcast_song(song)

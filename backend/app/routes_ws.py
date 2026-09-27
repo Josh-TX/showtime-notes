@@ -71,6 +71,6 @@ async def _handle_audio_chunk(websocket: WebSocket, data: bytes) -> None:
     pcm = np.frombuffer(data[AUDIO_HEADER_BYTES:], dtype="<i2")
 
     state.rolling_buffer.push(pcm)
-    recording.push_audio(pcm)
+    await recording.push_audio(pcm)
     await sync_service.feed_live_audio(pcm)
     await listen_service.handle_chunk(pcm, data)

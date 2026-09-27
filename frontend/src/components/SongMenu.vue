@@ -27,7 +27,6 @@ function statusLabel(song: SongSummary): string {
 
 <template>
   <div class="song-menu">
-    <RecordControls />
     <div class="song-list">
       <div
         v-for="song in store.show?.songs ?? []"
@@ -37,7 +36,8 @@ function statusLabel(song: SongSummary): string {
         @click="select(song)"
       >
         <span class="name">{{ song.name }}</span>
-        <span class="status" :class="song.status">{{ statusLabel(song) }}</span>
+        <span v-if="song.status === 'recording'" class="rec-dot" />
+        <span v-else class="status" :class="song.status">{{ statusLabel(song) }}</span>
         <button
           v-if="['ready', 'acquiring-sync', 'synced'].includes(song.status)"
           class="sync-btn"
@@ -47,6 +47,7 @@ function statusLabel(song: SongSummary): string {
         </button>
       </div>
     </div>
+    <RecordControls />
   </div>
 </template>
 
@@ -93,5 +94,18 @@ function statusLabel(song: SongSummary): string {
 }
 .sync-btn {
   font-size: 0.7rem;
+}
+.rec-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #e04040;
+  display: inline-block;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.3;
+  }
 }
 </style>

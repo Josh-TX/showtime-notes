@@ -13,6 +13,7 @@ export const useShowStore = defineStore('show', {
     selectedSongId: null as string | null,
     selectedSong: null as Song | null,
     waveform: null as Waveform | null,
+    recordingPeaks: [] as number[],
     positionSeconds: null as number | null,
     confidenceBars: [] as ConfidenceBar[],
     loudness: 0,
@@ -25,8 +26,17 @@ export const useShowStore = defineStore('show', {
       ws.on('show_update', (payload: ShowInfo) => {
         this.show = payload
         if (payload.listener.deviceName !== deviceName) this.isListener = false
+        if (this.selectedSongId && !payload.songs.some((s) => s.id === this.selectedSongId)) {
+          this.selectedSongId = null
+          this.selectedSong = null
+          this.waveform = null
+          this.recordingPeaks = []
+        }
       })
       ws.on('song_update', (payload: Song) => this._onSongUpdate(payload))
+      ws.on('recording_peaks', (payload: { songId: string; peaks: number[] }) => {
+        if (payload.songId === this.selectedSongId) this.recordingPeaks.push(...payload.peaks)
+      })
       ws.on('position_update', (payload: { targetSongId: string; positionSeconds: number }) => {
         if (payload.targetSongId === this.selectedSongId) this.positionSeconds = payload.positionSeconds
       })
@@ -58,6 +68,7 @@ export const useShowStore = defineStore('show', {
         if (!hadAudio && HAS_AUDIO_STATUSES.has(song.status)) {
           api.getWaveform(song.id).then((w) => (this.waveform = w))
         }
+        if (song.status !== 'recording') this.recordingPeaks = []
       }
     },
 
@@ -66,9 +77,12 @@ export const useShowStore = defineStore('show', {
       this.positionSeconds = null
       this.confidenceBars = []
       this.waveform = null
+      this.recordingPeaks = []
       this.selectedSong = await api.getSong(id)
       if (HAS_AUDIO_STATUSES.has(this.selectedSong.status)) {
         this.waveform = await api.getWaveform(id)
+      } else if (this.selectedSong.status === 'recording') {
+        this.recordingPeaks = (await api.getRecordingPeaks(id)).peaks
       }
     },
 

@@ -37,6 +37,14 @@ async def get_waveform(song_id: str):
     return {"peaks": peaks, "beats": beats["beats"], "downbeats": beats["downbeats"]}
 
 
+@router.get("/songs/{song_id}/recording-peaks")
+async def get_recording_peaks(song_id: str):
+    _song_or_404(song_id)
+    if state.recording is None or state.recording_song_id != song_id:
+        return {"peaks": []}
+    return {"peaks": state.recording.peaks}
+
+
 @router.get("/songs/{song_id}/audio/{stem}")
 async def get_audio(song_id: str, stem: str):
     _song_or_404(song_id)
@@ -65,6 +73,8 @@ async def rename_song(song_id: str, body: RenameBody):
 @router.delete("/songs/{song_id}")
 async def delete_song(song_id: str):
     _song_or_404(song_id)
+    if song_id == state.recording_song_id:
+        raise HTTPException(409, "cannot delete a song that is currently recording")
     state.songs.pop(song_id, None)
     if song_id in state.song_order:
         state.song_order.remove(song_id)
@@ -158,35 +168,26 @@ async def start_recording(body: StartRecordingBody):
     return song.model_dump(by_alias=True)
 
 
-@router.post("/recording/stop")
-async def stop_recording():
-    try:
-        song = await recording.stop_recording()
-    except ValueError as e:
-        raise HTTPException(409, str(e))
-    return song.model_dump(by_alias=True)
-
-
-@router.post("/recording/discard")
-async def discard_recording():
-    try:
-        await recording.discard_recording()
-    except ValueError as e:
-        raise HTTPException(409, str(e))
-    return {"ok": True}
-
-
-class ConfirmRecordingBody(ApiModel):
+class StopAndSaveBody(ApiModel):
     name: str
 
 
-@router.post("/recording/confirm")
-async def confirm_recording(body: ConfirmRecordingBody):
+@router.post("/recording/stop-and-save")
+async def stop_and_save_recording(body: StopAndSaveBody):
     try:
-        song = await recording.confirm_and_process(body.name)
+        song = await recording.stop_and_save(body.name)
     except ValueError as e:
         raise HTTPException(409, str(e))
     return song.model_dump(by_alias=True)
+
+
+@router.post("/recording/stop-and-discard")
+async def stop_and_discard_recording():
+    try:
+        await recording.stop_and_discard()
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+    return {"ok": True}
 
 
 # -- sync --

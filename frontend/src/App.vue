@@ -4,6 +4,7 @@ import Navbar from './components/Navbar.vue'
 import SongMenu from './components/SongMenu.vue'
 import SongPanel from './components/SongPanel.vue'
 import Track from './components/Track.vue'
+import RecordingTrack from './components/RecordingTrack.vue'
 import { useShowStore } from './store/show'
 
 const DEVICE_NAME_STORAGE_KEY = 'deviceName'
@@ -38,7 +39,8 @@ function join(): void {
       <SongPanel />
     </div>
     <div class="lower">
-      <Track />
+      <RecordingTrack v-if="store.selectedSong?.status === 'recording'" />
+      <Track v-else />
     </div>
   </div>
 </template>
