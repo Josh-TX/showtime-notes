@@ -157,12 +157,13 @@ async def delete_track_note(song_id: str, note_id: str):
 
 class StartRecordingBody(ApiModel):
     include_pre_roll: bool = True
+    name: str | None = None
 
 
 @router.post("/recording/start")
 async def start_recording(body: StartRecordingBody):
     try:
-        song = await recording.start_recording(body.include_pre_roll)
+        song = await recording.start_recording(body.include_pre_roll, body.name)
     except ValueError as e:
         raise HTTPException(409, str(e))
     return song.model_dump(by_alias=True)

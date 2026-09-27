@@ -4,7 +4,7 @@ change."""
 from . import storage, ws_manager
 from .aligner import LiveAligner
 from .audio_buffer import RecordingBuffer, RollingBuffer
-from .models import ClientInfo, ListenerInfo, Song, SongSummary, ShowInfo, SyncState
+from .models import ClientInfo, ListenerInfo, Song, SongStatus, SongSummary, ShowInfo, SyncState
 
 
 class ServerState:
@@ -16,9 +16,17 @@ class ServerState:
         self.songs: dict[str, Song] = {}
         for song_id in list(self.song_order):
             try:
-                self.songs[song_id] = storage.load_song_meta(song_id)
+                song = storage.load_song_meta(song_id)
             except FileNotFoundError:
                 self.song_order.remove(song_id)
+                continue
+            if song.status == SongStatus.RECORDING:
+                # the in-progress audio buffer was in-memory only and didn't survive the restart
+                self.song_order.remove(song_id)
+                storage.delete_song(song_id)
+                continue
+            self.songs[song_id] = song
+        self.persist_show()
 
         self.rolling_buffer = RollingBuffer()
         self.recording: RecordingBuffer | None = None

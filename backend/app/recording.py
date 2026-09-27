@@ -15,7 +15,7 @@ def is_recording() -> bool:
     return state.recording is not None
 
 
-async def start_recording(include_pre_roll: bool) -> Song:
+async def start_recording(include_pre_roll: bool, name: str | None = None) -> Song:
     if state.recording is not None:
         raise ValueError("a recording is already in progress")
     state.recording = RecordingBuffer()
@@ -23,7 +23,11 @@ async def start_recording(include_pre_roll: bool) -> Song:
     if include_pre_roll:
         state.recording.push(state.rolling_buffer.snapshot())
 
-    song = Song(id=uuid.uuid4().hex[:12], name="New Recording", status=SongStatus.RECORDING)
+    song = Song(
+        id=uuid.uuid4().hex[:12],
+        name=(name or "").strip() or "New Recording",
+        status=SongStatus.RECORDING,
+    )
     state.recording_song_id = song.id
     state.songs[song.id] = song
     state.song_order.append(song.id)

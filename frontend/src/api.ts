@@ -29,7 +29,8 @@ export const api = {
     request<TrackNote>('PUT', `/songs/${id}/track-notes/${noteId}`, patch),
   deleteTrackNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/track-notes/${noteId}`),
 
-  startRecording: (includePreRoll: boolean) => request<Song>('POST', '/recording/start', { includePreRoll }),
+  startRecording: (includePreRoll: boolean, name?: string) =>
+    request<Song>('POST', '/recording/start', { includePreRoll, name }),
   stopAndSaveRecording: (name: string) => request<Song>('POST', '/recording/stop-and-save', { name }),
   stopAndDiscardRecording: () => request<void>('POST', '/recording/stop-and-discard'),
 

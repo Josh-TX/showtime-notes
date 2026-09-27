@@ -10,6 +10,23 @@ const freeNotes = ref('')
 const recordingName = ref('')
 let saveTimer: number | undefined
 
+const newRecordingName = ref('')
+
+watch(
+  () => store.isStartingRecording,
+  (isStarting) => {
+    if (isStarting) newRecordingName.value = ''
+  },
+)
+
+async function startNewRecording(includePreRoll: boolean): Promise<void> {
+  await api.startRecording(includePreRoll, newRecordingName.value.trim())
+}
+
+function cancelNewRecording(): void {
+  store.cancelStartRecording()
+}
+
 watch(
   () => store.selectedSong?.id,
   () => {
@@ -54,7 +71,18 @@ async function deleteSong(): Promise<void> {
 </script>
 
 <template>
-  <div class="song-panel" v-if="store.selectedSong">
+  <div class="song-panel" v-if="store.isStartingRecording">
+    <div class="title-row">
+      <h2>Start new recording</h2>
+      <button class="cancel-btn" @click="cancelNewRecording">Cancel</button>
+    </div>
+    <input v-model="newRecordingName" class="name-input" placeholder="Song Name" />
+    <div class="recording-actions">
+      <button @click="startNewRecording(false)">Start recording now</button>
+      <button @click="startNewRecording(true)">Start recording 1 second ago</button>
+    </div>
+  </div>
+  <div class="song-panel" v-else-if="store.selectedSong">
     <template v-if="store.selectedSong.status === 'recording'">
       <div class="recording-header">
         <span class="rec-dot" />
@@ -106,9 +134,15 @@ h2 {
 }
 .delete-btn {
   flex-shrink: 0;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
   color: #e05050;
   border-color: #5a2a2a;
+}
+.cancel-btn {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
 }
 textarea {
   flex: 1;
@@ -129,12 +163,16 @@ textarea {
   margin-bottom: 0.4rem;
 }
 .name-input {
-  flex: 1;
+  flex-shrink: 0;
   font-size: 1.1rem;
   background: #1c1c1c;
   color: inherit;
   border: 1px solid #333;
   padding: 0.3rem 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.recording-header .name-input {
+  flex: 1;
 }
 .elapsed {
   font-family: monospace;

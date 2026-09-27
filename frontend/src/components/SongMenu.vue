@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { api } from '../api'
 import { useShowStore } from '../store/show'
-import RecordControls from './RecordControls.vue'
+import NewRecordingButton from './NewRecordingButton.vue'
 import type { SongSummary } from '../types'
 
 const store = useShowStore()
@@ -47,7 +47,7 @@ function statusLabel(song: SongSummary): string {
         </button>
       </div>
     </div>
-    <RecordControls />
+    <NewRecordingButton />
   </div>
 </template>
 
@@ -56,11 +56,13 @@ function statusLabel(song: SongSummary): string {
   display: flex;
   flex-direction: column;
   border-right: 1px solid #333;
-  overflow-y: auto;
+  overflow: hidden;
 }
 .song-list {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
 }
 .song-row {
   display: flex;

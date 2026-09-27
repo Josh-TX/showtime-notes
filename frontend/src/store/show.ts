@@ -12,6 +12,7 @@ export const useShowStore = defineStore('show', {
     show: null as ShowInfo | null,
     selectedSongId: null as string | null,
     selectedSong: null as Song | null,
+    isStartingRecording: false,
     waveform: null as Waveform | null,
     recordingPeaks: [] as number[],
     positionSeconds: null as number | null,
@@ -31,6 +32,13 @@ export const useShowStore = defineStore('show', {
           this.selectedSong = null
           this.waveform = null
           this.recordingPeaks = []
+        }
+        if (this.isStartingRecording) {
+          const recordingSong = payload.songs.find((s) => s.status === 'recording')
+          if (recordingSong) {
+            this.isStartingRecording = false
+            this.selectSong(recordingSong.id)
+          }
         }
       })
       ws.on('song_update', (payload: Song) => this._onSongUpdate(payload))
@@ -73,6 +81,7 @@ export const useShowStore = defineStore('show', {
     },
 
     async selectSong(id: string): Promise<void> {
+      this.isStartingRecording = false
       this.selectedSongId = id
       this.positionSeconds = null
       this.confidenceBars = []
@@ -84,6 +93,19 @@ export const useShowStore = defineStore('show', {
       } else if (this.selectedSong.status === 'recording') {
         this.recordingPeaks = (await api.getRecordingPeaks(id)).peaks
       }
+    },
+
+    openStartRecording(): void {
+      this.isStartingRecording = true
+      this.selectedSongId = null
+      this.selectedSong = null
+      this.waveform = null
+      this.recordingPeaks = []
+      this.positionSeconds = null
+      this.confidenceBars = []
+    },
+    cancelStartRecording(): void {
+      this.isStartingRecording = false
     },
 
     becomeListener(): void {
