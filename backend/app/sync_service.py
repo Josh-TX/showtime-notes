@@ -1,10 +1,12 @@
 """Owns the active sync target: acquiring/tracking against a chosen song's precomputed reference chroma, fed by the
 listener's live audio. Selecting a new target (or explicitly stopping) always wins over whatever was active before.
 """
+import time
+
 from . import chroma, storage, ws_manager
 from .aligner import LiveAligner, StepEvent
 from .config import CAPTURE_SR
-from .models import AcquireMode, SongStatus, SyncState, SyncStatus
+from .models import AcquireMode, ConfidenceBar, SongStatus, SyncState, SyncStatus
 from .resample import StreamResampler
 from .state import state
 
@@ -65,16 +67,10 @@ async def feed_live_audio(samples_int16) -> None:
     if len(resampled) == 0:
         return
     new_frames = state.chroma_stream.push(resampled)
-    for i in range(len(new_frames)):
-        events = state.live_aligner.push(new_frames[i : i + 1])
-        position = state.live_aligner.current_position_seconds()
-        if position is not None:
-            await ws_manager.manager.broadcast(
-                "position_update",
-                {"targetSongId": state.sync.target_song_id, "positionSeconds": position},
-            )
-        for event in events:
-            await _handle_step_event(event)
+    if len(new_frames) == 0:
+        return
+    for event in state.live_aligner.push(new_frames):
+        await _handle_step_event(event)
 
 
 async def _handle_step_event(event: StepEvent) -> None:
@@ -82,14 +78,24 @@ async def _handle_step_event(event: StepEvent) -> None:
     if song_id is None:
         return
 
-    if event.bars:
-        await ws_manager.manager.broadcast(
-            "confidence_bars",
-            {
-                "targetSongId": song_id,
-                "bars": [{"refSeconds": b.ref_seconds, "score": b.score} for b in event.bars],
-            },
-        )
+    if event.mode == "tracking" and event.position_seconds is not None:
+        state.sync.anchor_ref_seconds = event.position_seconds
+        state.sync.anchor_wallclock_ms = time.time() * 1000
+    else:
+        state.sync.anchor_ref_seconds = None
+        state.sync.anchor_wallclock_ms = None
+    bars = [{"refSeconds": b.ref_seconds, "score": b.score} for b in event.bars]
+    state.sync.bars = [ConfidenceBar(ref_seconds=b.ref_seconds, score=b.score) for b in event.bars]
+
+    await ws_manager.manager.broadcast(
+        "sync_update",
+        {
+            "targetSongId": song_id,
+            "anchorRefSeconds": state.sync.anchor_ref_seconds,
+            "anchorWallclockMs": state.sync.anchor_wallclock_ms,
+            "bars": bars,
+        },
+    )
 
     if event.just_locked:
         state.sync.status = SyncStatus.SYNCED

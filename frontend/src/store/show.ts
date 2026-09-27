@@ -5,6 +5,12 @@ import type { ConfidenceBar, Song, ShowInfo, SongSummary, Waveform } from '../ty
 
 const HAS_AUDIO_STATUSES = new Set(['ready', 'acquiring-sync', 'synced'])
 
+function anchorFromSync(sync: { anchorRefSeconds: number | null; anchorWallclockMs: number | null }) {
+  return sync.anchorRefSeconds !== null && sync.anchorWallclockMs !== null
+    ? { refSeconds: sync.anchorRefSeconds, wallclockMs: sync.anchorWallclockMs }
+    : null
+}
+
 export const useShowStore = defineStore('show', {
   state: () => ({
     deviceName: '',
@@ -15,7 +21,7 @@ export const useShowStore = defineStore('show', {
     isStartingRecording: false,
     waveform: null as Waveform | null,
     recordingPeaks: [] as number[],
-    positionSeconds: null as number | null,
+    positionAnchor: null as { refSeconds: number; wallclockMs: number } | null,
     confidenceBars: [] as ConfidenceBar[],
     loudness: 0,
     isListener: false,
@@ -40,17 +46,26 @@ export const useShowStore = defineStore('show', {
             this.selectSong(recordingSong.id)
           }
         }
+        if (payload.sync.targetSongId !== this.selectedSongId) {
+          this.positionAnchor = null
+          this.confidenceBars = []
+        } else {
+          this.positionAnchor = anchorFromSync(payload.sync)
+          this.confidenceBars = payload.sync.bars
+        }
       })
       ws.on('song_update', (payload: Song) => this._onSongUpdate(payload))
       ws.on('recording_peaks', (payload: { songId: string; peaks: number[] }) => {
         if (payload.songId === this.selectedSongId) this.recordingPeaks.push(...payload.peaks)
       })
-      ws.on('position_update', (payload: { targetSongId: string; positionSeconds: number }) => {
-        if (payload.targetSongId === this.selectedSongId) this.positionSeconds = payload.positionSeconds
-      })
-      ws.on('confidence_bars', (payload: { targetSongId: string; bars: ConfidenceBar[] }) => {
-        if (payload.targetSongId === this.selectedSongId) this.confidenceBars = payload.bars
-      })
+      ws.on(
+        'sync_update',
+        (payload: { targetSongId: string; anchorRefSeconds: number | null; anchorWallclockMs: number | null; bars: ConfidenceBar[] }) => {
+          if (payload.targetSongId !== this.selectedSongId) return
+          this.positionAnchor = anchorFromSync(payload)
+          this.confidenceBars = payload.bars
+        },
+      )
       ws.on('loudness', (payload: { level: number }) => {
         this.loudness = payload.level
       })
@@ -83,8 +98,13 @@ export const useShowStore = defineStore('show', {
     async selectSong(id: string): Promise<void> {
       this.isStartingRecording = false
       this.selectedSongId = id
-      this.positionSeconds = null
-      this.confidenceBars = []
+      if (this.show?.sync.targetSongId === id) {
+        this.positionAnchor = anchorFromSync(this.show.sync)
+        this.confidenceBars = this.show.sync.bars
+      } else {
+        this.positionAnchor = null
+        this.confidenceBars = []
+      }
       this.waveform = null
       this.recordingPeaks = []
       this.selectedSong = await api.getSong(id)
@@ -101,7 +121,7 @@ export const useShowStore = defineStore('show', {
       this.selectedSong = null
       this.waveform = null
       this.recordingPeaks = []
-      this.positionSeconds = null
+      this.positionAnchor = null
       this.confidenceBars = []
     },
     cancelStartRecording(): void {

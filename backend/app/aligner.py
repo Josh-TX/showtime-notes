@@ -126,14 +126,6 @@ class LiveAligner:
         self._acq_j_lo = max(0, frames(lo_s))
         self._acq_j_hi = min(self.n_ref - 1, max(self._acq_j_lo, frames(hi_s)))
 
-    def current_position_seconds(self) -> float | None:
-        """Best current estimate, for broadcasting every incoming frame (between real tracker steps the caller
-        should just add FRAME_SECONDS * frames-since-last-report, matching the 'live tempo == ref tempo' assumption)."""
-        if self.mode != "tracking":
-            return None
-        i_end_abs = self._count - 1
-        return frame_center_seconds(i_end_abs + self._offset)
-
     def push(self, new_frames: np.ndarray) -> list[StepEvent]:
         events: list[StepEvent] = []
         if len(new_frames) == 0:

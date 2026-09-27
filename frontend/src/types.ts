@@ -36,6 +36,9 @@ export interface SyncState {
   status: SyncStatus
   targetSongId: string | null
   acquireMode: AcquireMode | null
+  anchorRefSeconds: number | null
+  anchorWallclockMs: number | null
+  bars: ConfidenceBar[]
 }
 
 export interface ListenerInfo {

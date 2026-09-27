@@ -10,16 +10,21 @@ const WAVEFORM_HEIGHT = WAVEFORM_LANE_HEIGHT * 2
 const NORMAL_BEAT_ALPHA = 0.08
 const DOWNBEAT_ALPHA = 0.5
 const BAR_OFFSET_PERCENT = 0.3
+const CONFIDENCE_BAR_ALPHA = 0.7
 
 const store = useShowStore()
 
 const containerEl = ref<HTMLDivElement | null>(null)
 const waveCanvas = ref<HTMLCanvasElement | null>(null)
-const confidenceCanvas = ref<HTMLCanvasElement | null>(null)
+const acquireConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
+const trackConfidenceCanvas = ref<HTMLCanvasElement | null>(null)
 
 const viewportWidthPx = ref(400)
 const viewportHeightPx = ref(200)
 const autoScroll = ref(true)
+const displayPosition = ref<number | null>(null)
+// ref-seconds at local x=0 of trackConfidenceCanvas, from whichever bars snapshot is currently drawn into it
+const trackWindowOriginSeconds = ref<number | null>(null)
 
 const durationSeconds = computed(() => {
   const fromPeaks = (store.waveform?.peaks.vocals.length ?? 0) / PEAKS_PER_SECOND
@@ -32,8 +37,19 @@ const trackWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value + e
 const totalHeightPx = computed(() => viewportHeightPx.value)
 
 const positionLeftPx = computed(() =>
-  store.positionSeconds === null ? null : startWidthPx.value + store.positionSeconds * PIXELS_PER_SECOND,
+  displayPosition.value === null ? null : startWidthPx.value + displayPosition.value * PIXELS_PER_SECOND,
 )
+
+const barStepPx = PIXELS_PER_SECOND / PEAKS_PER_SECOND
+const trackWidthConfidencePx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx))
+// Mirrors positionLeftPx's anchor extrapolation, offset by where the drawn window's first bar sits relative to
+// the anchor - so the window glides in lockstep with the position bar instead of jumping on every new snapshot.
+const trackLeftPx = computed(() => {
+  const anchor = store.positionAnchor
+  if (anchor === null || trackWindowOriginSeconds.value === null || displayPosition.value === null) return null
+  const drift = displayPosition.value - anchor.refSeconds
+  return startWidthPx.value + (trackWindowOriginSeconds.value + drift) * PIXELS_PER_SECOND
+})
 
 function timeToLeft(seconds: number): number {
   return startWidthPx.value + seconds * PIXELS_PER_SECOND
@@ -81,27 +97,50 @@ function drawWaveform(): void {
   drawPeaks(waveform.peaks.novocals, novocalsCenter, '#7a7a7a')
 }
 
-function drawConfidenceOverlay(): void {
-  const canvas = confidenceCanvas.value
-  const container = containerEl.value
-  if (!canvas || !container) return
-  const width = viewportWidthPx.value
-  const height = totalHeightPx.value
-  if (canvas.width !== width) canvas.width = width
-  if (canvas.height !== height) canvas.height = height
+// Acquiring: no lock yet, so bars span the whole scan range and sit at fixed absolute ref-time coordinates,
+// same as the waveform - there's no "current position" for them to glide with.
+function drawAcquireConfidence(): void {
+  const canvas = acquireConfidenceCanvas.value
+  if (!canvas) return
+  canvas.width = canvasWidthPx.value
+  canvas.height = totalHeightPx.value
   const ctx = canvas.getContext('2d')
   if (!ctx) return
-  ctx.clearRect(0, 0, width, height)
-  if (!store.confidenceBars.length) return
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  if (store.positionAnchor !== null || !store.confidenceBars.length) return
 
-  const step = PIXELS_PER_SECOND / PEAKS_PER_SECOND
-  const originX = startWidthPx.value - container.scrollLeft
+  const height = canvas.height
+  ctx.fillStyle = `rgba(224, 195, 62, ${CONFIDENCE_BAR_ALPHA})`
   for (const bar of store.confidenceBars) {
-    const x = originX + bar.refSeconds * PIXELS_PER_SECOND
-    if (x + step < 0 || x > width) continue
-    const alpha = Math.max(0, Math.min(1, bar.score))
-    ctx.fillStyle = `rgba(224, 195, 62, ${alpha * 0.6})`
-    ctx.fillRect(x, 0, Math.max(1, step), height)
+    const x = bar.refSeconds * PIXELS_PER_SECOND
+    const barHeight = Math.max(0, Math.min(1, bar.score)) * height
+    ctx.fillRect(x, height - barHeight, Math.max(1, barStepPx), barHeight)
+  }
+}
+
+// Tracking: bars are a small window around the current estimate. Draw them once into a snugly-sized canvas in
+// local coordinates, then let trackLeftPx (computed every tick, like positionLeftPx) carry it across the screen.
+function drawTrackConfidence(): void {
+  const canvas = trackConfidenceCanvas.value
+  if (!canvas) return
+  const bars = store.confidenceBars
+  if (store.positionAnchor === null || !bars.length) {
+    trackWindowOriginSeconds.value = null
+    return
+  }
+  trackWindowOriginSeconds.value = bars[0].refSeconds
+  canvas.width = trackWidthConfidencePx.value
+  canvas.height = totalHeightPx.value
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  const height = canvas.height
+  ctx.fillStyle = `rgba(224, 195, 62, ${CONFIDENCE_BAR_ALPHA})`
+  for (let i = 0; i < bars.length; i++) {
+    const x = i * barStepPx
+    const barHeight = Math.max(0, Math.min(1, bars[i].score)) * height
+    ctx.fillRect(x, height - barHeight, Math.max(1, barStepPx), barHeight)
   }
 }
 
@@ -109,7 +148,23 @@ function refreshLayout(): void {
   viewportWidthPx.value = containerEl.value?.clientWidth ?? 400
   viewportHeightPx.value = containerEl.value?.clientHeight ?? 200
   drawWaveform()
-  drawConfidenceOverlay()
+  drawAcquireConfidence()
+  drawTrackConfidence()
+}
+
+function tick(): void {
+  const anchor = store.positionAnchor
+  if (anchor) {
+    const extrapolated = anchor.refSeconds + (Date.now() - anchor.wallclockMs) / 1000
+    displayPosition.value =
+      durationSeconds.value > 0 ? Math.max(0, Math.min(durationSeconds.value, extrapolated)) : Math.max(0, extrapolated)
+  } else {
+    displayPosition.value = null
+  }
+  if (autoScroll.value && displayPosition.value !== null && containerEl.value) {
+    containerEl.value.scrollLeft = displayPosition.value * PIXELS_PER_SECOND
+  }
+  rafId = requestAnimationFrame(tick)
 }
 
 function onTrackDoubleClick(event: MouseEvent): void {
@@ -133,22 +188,27 @@ function editNote(noteId: string, currentText: string): void {
 }
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
-watch(() => store.confidenceBars, drawConfidenceOverlay)
 watch(
-  () => store.positionSeconds,
-  (seconds) => {
-    if (!autoScroll.value || seconds === null || !containerEl.value) return
-    containerEl.value.scrollLeft = seconds * PIXELS_PER_SECOND
-  },
+  () => store.confidenceBars,
+  () =>
+    nextTick(() => {
+      drawAcquireConfidence()
+      drawTrackConfidence()
+    }),
 )
 
 let resizeObserver: ResizeObserver | undefined
+let rafId = 0
 onMounted(() => {
   refreshLayout()
   resizeObserver = new ResizeObserver(refreshLayout)
   if (containerEl.value) resizeObserver.observe(containerEl.value)
+  rafId = requestAnimationFrame(tick)
 })
-onUnmounted(() => resizeObserver?.disconnect())
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  cancelAnimationFrame(rafId)
+})
 </script>
 
 <template>
@@ -157,7 +217,7 @@ onUnmounted(() => resizeObserver?.disconnect())
       <label><input type="checkbox" v-model="autoScroll" /> auto-scroll</label>
     </div>
     <div class="track-outer">
-      <div class="track-container" ref="containerEl" @scroll="drawConfidenceOverlay">
+      <div class="track-container" ref="containerEl">
         <div
           v-if="store.selectedSong"
           class="track"
@@ -167,6 +227,18 @@ onUnmounted(() => resizeObserver?.disconnect())
           <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
           <canvas ref="waveCanvas" class="wave-canvas" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }" />
           <div class="end-area" :style="{ width: `${endWidthPx}px` }"></div>
+          <canvas
+            v-if="store.positionAnchor === null"
+            ref="acquireConfidenceCanvas"
+            class="confidence-overlay"
+            :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }"
+          />
+          <canvas
+            v-else
+            ref="trackConfidenceCanvas"
+            class="confidence-overlay"
+            :style="{ left: `${trackLeftPx ?? startWidthPx}px`, width: `${trackWidthConfidencePx}px`, height: `${totalHeightPx}px` }"
+          />
           <div
             v-for="note in store.selectedSong.trackNotes"
             :key="note.id"
@@ -179,11 +251,6 @@ onUnmounted(() => resizeObserver?.disconnect())
           <div v-if="positionLeftPx !== null" class="position-bar" :style="{ left: `${positionLeftPx}px` }" />
         </div>
       </div>
-      <canvas
-        ref="confidenceCanvas"
-        class="confidence-overlay"
-        :style="{ width: `${viewportWidthPx}px`, height: `${totalHeightPx}px` }"
-      />
     </div>
   </div>
 </template>
@@ -229,7 +296,6 @@ onUnmounted(() => resizeObserver?.disconnect())
 .confidence-overlay {
   position: absolute;
   top: 0;
-  left: 0;
   pointer-events: none;
   z-index: 2;
 }

@@ -57,10 +57,18 @@ class SyncStatus(str, Enum):
     SYNCED = "synced"
 
 
+class ConfidenceBar(ApiModel):
+    ref_seconds: float
+    score: float
+
+
 class SyncState(ApiModel):
     status: SyncStatus = SyncStatus.NONE
     target_song_id: str | None = None
     acquire_mode: AcquireMode | None = None
+    anchor_ref_seconds: float | None = None  # ref-song time at anchor_wallclock_ms; None while acquiring
+    anchor_wallclock_ms: float | None = None
+    bars: list[ConfidenceBar] = []
 
 
 class ListenerInfo(ApiModel):
