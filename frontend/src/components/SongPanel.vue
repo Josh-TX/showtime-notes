@@ -119,7 +119,7 @@ async function toggleSync(): Promise<void> {
           {{ isSynced ? 'Unsync' : 'Sync' }}
         </button>
         <template v-if="isSynced">
-          <SyncArrows :color="syncColor" :size="14" />
+          <SyncArrows :color="syncColor" :size="16" />
           <span class="phase-badge" :style="{ color: syncColor, borderColor: syncColor }">
             {{ syncPhase === 'tracking' ? 'Tracking' : 'Acquiring' }}
           </span>

@@ -35,7 +35,7 @@ function selectSyncedSong(): void {
     @click="selectSyncedSong"
     @keydown.enter="selectSyncedSong"
   >
-    <SyncArrows :color="color" :size="14" />
+    <SyncArrows :color="color" :size="16" />
     <span v-if="targetName" class="target-name">{{ targetName }}</span>
   </div>
 </template>

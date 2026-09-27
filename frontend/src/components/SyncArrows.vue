@@ -6,11 +6,11 @@ withDefaults(defineProps<{ color: string; size?: number }>(), {
 
 <template>
   <div class="arrows" :style="{ gap: `${Math.max(1, Math.round(size / 20))}px` }">
-    <svg :width="size" :height="(size * 9) / 20" viewBox="0 0 24 10" :fill="color">
-      <path d="M0 3.5H14V0L24 5L14 10V6.5H0Z" />
+    <svg :width="size" :height="(size * 11) / 24" viewBox="0 -0.5 24 11" :fill="color">
+      <path d="M0 3.5H14V-0.5L24 5L14 10.5V6.5H0Z" />
     </svg>
-    <svg :width="size" :height="(size * 9) / 20" viewBox="0 0 24 10" :fill="color">
-      <path d="M24 3.5H10V0L0 5L10 10V6.5H24Z" />
+    <svg :width="size" :height="(size * 11) / 24" viewBox="0 -0.5 24 11" :fill="color">
+      <path d="M24 3.5H10V-0.5L0 5L10 10.5V6.5H24Z" />
     </svg>
   </div>
 </template>
