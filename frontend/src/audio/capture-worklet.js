@@ -10,10 +10,13 @@ class CaptureProcessor extends AudioWorkletProcessor {
   }
 
   process(inputs) {
-    const channel = inputs[0]?.[0]
-    if (channel) {
-      for (let i = 0; i < channel.length; i++) {
-        const clamped = Math.max(-1, Math.min(1, channel[i]))
+    const input = inputs[0]
+    const left = input?.[0]
+    if (left) {
+      const right = input.length > 1 ? input[1] : null
+      for (let i = 0; i < left.length; i++) {
+        const sample = right ? (left[i] + right[i]) / 2 : left[i]
+        const clamped = Math.max(-1, Math.min(1, sample))
         this.buffer[this.offset++] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff
         if (this.offset === CHUNK_SAMPLES) {
           this.port.postMessage(this.buffer.slice())

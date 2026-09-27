@@ -10,7 +10,11 @@ async function pipeStream(mediaStream: MediaStream): Promise<void> {
   audioContext = new AudioContext({ sampleRate: 48000 })
   await audioContext.audioWorklet.addModule(captureWorkletUrl)
   const source = audioContext.createMediaStreamSource(stream)
-  const node = new AudioWorkletNode(audioContext, 'capture-processor')
+  const node = new AudioWorkletNode(audioContext, 'capture-processor', {
+    channelCount: 2,
+    channelCountMode: 'explicit',
+    channelInterpretation: 'discrete',
+  })
   node.port.onmessage = (event: MessageEvent<Int16Array>) => {
     const pcm = event.data
     const message = new Uint8Array(8 + pcm.byteLength)
@@ -37,7 +41,14 @@ export async function startCapture(deviceId?: string): Promise<void> {
 }
 
 export async function startTabCapture(): Promise<void> {
-  const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true })
+  const displayStream = await navigator.mediaDevices.getDisplayMedia({
+    video: true,
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    },
+  })
   const audioTracks = displayStream.getAudioTracks()
   displayStream.getVideoTracks().forEach((track) => track.stop())
   if (audioTracks.length === 0) {
