@@ -176,7 +176,6 @@ async function toggleLiveAudio(): Promise<void> {
   flex-direction: column;
   width: 220px;
   padding: 0.15rem 0.6rem;
-  border-radius: 4px;
   cursor: pointer;
 }
 .listener-section:hover {

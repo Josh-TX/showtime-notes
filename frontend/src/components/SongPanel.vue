@@ -68,6 +68,18 @@ async function deleteSong(): Promise<void> {
   if (!window.confirm(`Delete "${song.name}"? This cannot be undone.`)) return
   await api.deleteSong(song.id)
 }
+
+const isSynced = computed(() => store.show?.sync.targetSongId === store.selectedSong?.id)
+
+async function toggleSync(): Promise<void> {
+  const song = store.selectedSong
+  if (!song) return
+  if (isSynced.value) {
+    await api.stopSync()
+  } else {
+    await api.startSync(song.id, 'acquire-sync-start')
+  }
+}
 </script>
 
 <template>
@@ -96,6 +108,13 @@ async function deleteSong(): Promise<void> {
     </template>
     <div v-else class="title-row">
       <h2>{{ store.selectedSong.name }}</h2>
+      <button
+        v-if="['ready', 'acquiring-sync', 'synced'].includes(store.selectedSong.status)"
+        class="sync-btn"
+        @click="toggleSync"
+      >
+        {{ isSynced ? 'Unsync' : 'Sync' }}
+      </button>
       <button class="delete-btn" @click="deleteSong">Delete</button>
     </div>
     <p v-if="store.selectedSong.status === 'processing'">
@@ -140,6 +159,11 @@ h2 {
   border-color: #5a2a2a;
 }
 .cancel-btn {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
+}
+.sync-btn {
   flex-shrink: 0;
   font-size: 0.8rem;
   padding: 0.2rem 0.6rem;

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useShowStore } from '../store/show'
+import SyncArrows from './SyncArrows.vue'
 
 const store = useShowStore()
 
@@ -15,20 +16,28 @@ const color = computed(() => {
   }
 })
 
+const targetId = computed(() => store.show?.sync.targetSongId ?? null)
 const targetName = computed(() => {
-  const id = store.show?.sync.targetSongId
+  const id = targetId.value
   return id ? store.show?.songs.find((s) => s.id === id)?.name : null
 })
+
+function selectSyncedSong(): void {
+  if (targetId.value) store.selectSong(targetId.value)
+}
 </script>
 
 <template>
-  <div class="sync-indicator" :title="targetName ? `Synced with: ${targetName}` : 'Not synced'">
-    <svg width="20" height="20" viewBox="0 0 24 24" :fill="color">
-      <path d="M2 7h16l-4-4 1.4-1.4L22 9l-6.6 6.4L14 14l4-4H2z" />
-    </svg>
-    <svg width="20" height="20" viewBox="0 0 24 24" :fill="color">
-      <path d="M22 17H6l4 4-1.4 1.4L2 15l6.6-6.4L10 10l-4 4h16z" />
-    </svg>
+  <div
+    class="sync-indicator"
+    :class="{ clickable: !!targetId }"
+    :role="targetId ? 'button' : undefined"
+    :tabindex="targetId ? 0 : undefined"
+    :title="targetName ? `Synced with: ${targetName}` : 'Not synced'"
+    @click="selectSyncedSong"
+    @keydown.enter="selectSyncedSong"
+  >
+    <SyncArrows :color="color" :size="14" />
     <span v-if="targetName" class="target-name">{{ targetName }}</span>
   </div>
 </template>
@@ -36,15 +45,22 @@ const targetName = computed(() => {
 <style scoped>
 .sync-indicator {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0;
-  line-height: 0.7;
+  gap: 6px;
+  align-self: stretch;
+  margin: -0.4rem 0;
+  padding: 0.4rem 0.6rem;
+}
+.sync-indicator.clickable {
+  cursor: pointer;
+}
+.sync-indicator.clickable:hover {
+  background: #262626;
 }
 .target-name {
-  font-size: 0.65rem;
+  font-size: 0.9rem;
   line-height: 1;
-  margin-top: 2px;
   color: #ccc;
 }
 </style>

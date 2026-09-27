@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { api } from '../api'
 import { useShowStore } from '../store/show'
 import NewRecordingButton from './NewRecordingButton.vue'
+import SyncArrows from './SyncArrows.vue'
 import type { SongSummary } from '../types'
 
 const store = useShowStore()
@@ -10,18 +10,8 @@ function select(song: SongSummary): void {
   store.selectSong(song.id)
 }
 
-async function toggleSync(song: SongSummary, event: Event): Promise<void> {
-  event.stopPropagation()
-  if (store.show?.sync.targetSongId === song.id) {
-    await api.stopSync()
-  } else {
-    await api.startSync(song.id, 'acquire-sync-start')
-  }
-}
-
-function statusLabel(song: SongSummary): string {
-  if (song.status === 'processing') return 'processing…'
-  return song.status
+function syncColor(song: SongSummary): string {
+  return song.status === 'synced' ? '#3ecf5f' : '#e0c33e'
 }
 </script>
 
@@ -37,14 +27,12 @@ function statusLabel(song: SongSummary): string {
       >
         <span class="name">{{ song.name }}</span>
         <span v-if="song.status === 'recording'" class="rec-dot" />
-        <span v-else class="status" :class="song.status">{{ statusLabel(song) }}</span>
-        <button
-          v-if="['ready', 'acquiring-sync', 'synced'].includes(song.status)"
-          class="sync-btn"
-          @click="toggleSync(song, $event)"
-        >
-          {{ store.show?.sync.targetSongId === song.id ? 'unsync' : 'sync' }}
-        </button>
+        <span v-else-if="song.status === 'processing'" class="spinner" />
+        <SyncArrows
+          v-else-if="song.status === 'synced' || song.status === 'acquiring-sync'"
+          :color="syncColor(song)"
+          :size="14"
+        />
       </div>
     </div>
     <NewRecordingButton />
@@ -84,19 +72,6 @@ function statusLabel(song: SongSummary): string {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.status {
-  font-size: 0.7rem;
-  color: #999;
-}
-.status.synced {
-  color: #3ecf5f;
-}
-.status.acquiring-sync {
-  color: #e0c33e;
-}
-.sync-btn {
-  font-size: 0.7rem;
-}
 .rec-dot {
   width: 10px;
   height: 10px;
@@ -108,6 +83,20 @@ function statusLabel(song: SongSummary): string {
 @keyframes pulse {
   50% {
     opacity: 0.3;
+  }
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #444;
+  border-top-color: #999;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>
