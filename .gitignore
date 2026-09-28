@@ -20,3 +20,6 @@ images/
 # Showtime Notes runtime data
 backend/data/
 *.uv-cache/
+
+# Local aligner test corpus
+media/

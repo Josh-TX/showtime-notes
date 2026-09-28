@@ -20,6 +20,7 @@ UPDATE_FRAMES = 10  # aligner steps every this many new live frames (~500ms)
 ACQUIRE_START_RANGE_SECONDS = 20.0  # default scan range for acquire-sync-start; configurable per show
 
 ACQUIRE_WINDOW_SECONDS = 10.0
+ACQUIRE_MIN_WINDOW_SECONDS = 1.0  # below this, correlation is too noisy on 1-2 frames to be worth scoring
 ACQ_RECENCY_TIERS = ((0.25, 8.0), (0.25, 4.0))  # newest quarter counts 8x, next quarter 4x, older half weighs 1.0
 ACQ_MIN_SCORE, ACQ_MIN_LEFT_MARGIN, ACQ_MIN_RIGHT_MARGIN = 0.35, 0.10, 0.02
 LOCK_AGREE_SECONDS = 1.0
@@ -150,8 +151,11 @@ class LiveAligner:
         return events
 
     def _scan_acquisition(self, i_end: int) -> dict | None:
-        w = frames(ACQUIRE_WINDOW_SECONDS)
-        if i_end + 1 < w:
+        # recency weights put most of the window's weight on its newest fraction (see ACQ_RECENCY_TIERS),
+        # so scoring against whatever live audio is available - rather than waiting for a full window - already
+        # captures most of the signal quality; the OK thresholds below filter out weak/ambiguous early matches
+        w = min(frames(ACQUIRE_WINDOW_SECONDS), i_end + 1)
+        if w < frames(ACQUIRE_MIN_WINDOW_SECONDS):
             return None
         j_lo, j_hi = self._acq_j_lo, self._acq_j_hi
         win = self._live[i_end - w + 1 : i_end + 1]
@@ -186,7 +190,9 @@ class LiveAligner:
             self.mode = "tracking"
             self._offset = self._run[-1][1]
             self._low_streak = 0
-            return StepEvent("tracking", True, False, frame_center_seconds(i_end + self._offset), bars)
+            # bars are still shaped for the acquiring scan range; sending them here would flash
+            # mismatched bars in the tracking color, so send none until _track_step computes real ones
+            return StepEvent("tracking", True, False, frame_center_seconds(i_end + self._offset), [])
         return StepEvent("acquiring", False, False, None, bars)
 
     def _track_step(self, i_end: int) -> StepEvent:
@@ -233,7 +239,8 @@ class LiveAligner:
             self.mode = "acquiring"
             self._run = []
             self._low_streak = 0
-            return StepEvent("acquiring", False, True, None, bars)
+            # bars are still shaped for the tracking window, not the acquiring scan range; same reasoning as above
+            return StepEvent("acquiring", False, True, None, [])
         return StepEvent("tracking", False, False, frame_center_seconds(i_end + self._offset), bars)
 
     def _step(self, i_end_rel: int) -> StepEvent:
