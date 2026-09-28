@@ -44,7 +44,8 @@ def frame_center_seconds(frame: float) -> float:
     return (frame * HOP + N_FFT / 2) / SR
 
 
-def _frames_to_chroma(frames: np.ndarray) -> np.ndarray:
+def _frames_to_chroma(frames: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """(n, N_FFT) audio frames -> (presence (n,1) in [0,1] from RMS, unit-length chroma direction (n,12))."""
     rms = np.sqrt(np.mean(np.square(frames), axis=1, keepdims=True))
     ramp = np.log(LEVEL_LOUD_RMS / LEVEL_QUIET_RMS)
     p = np.clip(np.log(np.maximum(rms, 1e-12) / LEVEL_QUIET_RMS) / ramp, 0.0, 1.0)
@@ -53,7 +54,7 @@ def _frames_to_chroma(frames: np.ndarray) -> np.ndarray:
     pc -= pc.mean(axis=1, keepdims=True)
     norm = np.linalg.norm(pc, axis=1, keepdims=True)
     chroma = np.where(norm > 1e-6, pc / np.maximum(norm, 1e-6), 0.0)
-    return (p * chroma).astype(np.float32)
+    return p, chroma.astype(np.float32)
 
 
 def _frames_to_local_rms(frames: np.ndarray) -> np.ndarray:
@@ -87,19 +88,24 @@ class ChromaStream:
 
         idx = np.arange(n_frames) * HOP
         raw_frames = np.stack([buf[i : i + N_FFT] for i in idx])
-        chroma = _frames_to_chroma(raw_frames)
+        p, chroma_unit = _frames_to_chroma(raw_frames)
         local_rms = _frames_to_local_rms(raw_frames)
 
-        loudness = np.empty(n_frames, dtype=np.float32)
-        ramp_denom = max(1, _loudness_window_frames - 1)
+        loudness_pm1 = np.empty(n_frames, dtype=np.float32)
         for i in range(n_frames):
             history = self._rms_history
             count = len(history) + 1
             rank = sum(1 for v in history if v <= local_rms[i]) + 1
-            loudness[i] = LOUDNESS_WEIGHT * (2.0 * (rank / count) - 1.0)
+            loudness_pm1[i] = 2.0 * (rank / count) - 1.0
             history.append(float(local_rms[i]))
-        del ramp_denom
 
         self._tail = buf[n_frames * HOP :]
         self.frames_emitted += n_frames
-        return np.concatenate([chroma, loudness[:, None]], axis=1)
+
+        # Fold chroma direction + weighted loudness into a single unit direction, then scale by presence, so every
+        # frame has norm <= 1 and a dot product between two frames is bounded by (and only reaches) 1 when both are
+        # fully present and identical in chroma and loudness rank -- regardless of LOUDNESS_WEIGHT.
+        raw = np.concatenate([chroma_unit, (LOUDNESS_WEIGHT * loudness_pm1)[:, None]], axis=1)
+        raw_norm = np.linalg.norm(raw, axis=1, keepdims=True)
+        direction = np.where(raw_norm > 1e-6, raw / np.maximum(raw_norm, 1e-6), 0.0)
+        return (p * direction).astype(np.float32)

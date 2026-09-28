@@ -25,6 +25,9 @@ class ServerState:
                 self.song_order.remove(song_id)
                 storage.delete_song(song_id)
                 continue
+            if song.status == SongStatus.SYNCING:
+                # SyncState isn't persisted, so no song can actually be syncing after a restart
+                song.status = SongStatus.READY
             self.songs[song_id] = song
         self.persist_show()
 

@@ -11,6 +11,10 @@ const NORMAL_BEAT_ALPHA = 0.08
 const DOWNBEAT_ALPHA = 0.5
 const BAR_OFFSET_PERCENT = 0.3
 const CONFIDENCE_BAR_ALPHA = 0.7
+const CONFIDENCE_BAR_BG_ALPHA = 0.03
+const CONFIDENCE_BAR_MAX_HEIGHT = 120
+const ACQUIRING_BAR_COLOR = '#e0c33e'
+const TRACKING_BAR_COLOR = '#3ecf5f'
 
 const store = useShowStore()
 
@@ -53,6 +57,24 @@ const trackingBarsLeftPx = computed(() => {
 
 function timeToLeft(seconds: number): number {
   return startWidthPx.value + seconds * PIXELS_PER_SECOND
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+// Always draws the bar at the full max height so the max height reads as a fixed reference, with the
+// score encoded as how much of that height is filled in with the opaque color vs. the faint background fill.
+function drawConfidenceBar(ctx: CanvasRenderingContext2D, x: number, width: number, canvasHeight: number, score: number, color: string): void {
+  const filledHeight = Math.max(0, Math.min(1, score)) * CONFIDENCE_BAR_MAX_HEIGHT
+  const top = canvasHeight - CONFIDENCE_BAR_MAX_HEIGHT
+  ctx.fillStyle = hexToRgba(color, CONFIDENCE_BAR_BG_ALPHA)
+  ctx.fillRect(x, top, width, CONFIDENCE_BAR_MAX_HEIGHT - filledHeight)
+  ctx.fillStyle = hexToRgba(color, CONFIDENCE_BAR_ALPHA)
+  ctx.fillRect(x, canvasHeight - filledHeight, width, filledHeight)
 }
 
 function drawWaveform(): void {
@@ -110,11 +132,9 @@ function drawAcquiringConfidenceBars(): void {
   if (store.syncPhase !== 'acquiring' || !store.confidenceBars.length) return
 
   const height = canvas.height
-  ctx.fillStyle = `rgba(224, 195, 62, ${CONFIDENCE_BAR_ALPHA})`
   for (const bar of store.confidenceBars) {
     const x = bar.refSeconds * PIXELS_PER_SECOND
-    const barHeight = Math.max(0, Math.min(1, bar.score)) * height
-    ctx.fillRect(x, height - barHeight, Math.max(1, barStepPx), barHeight)
+    drawConfidenceBar(ctx, x, Math.max(1, barStepPx), height, bar.score, ACQUIRING_BAR_COLOR)
   }
 }
 
@@ -137,11 +157,9 @@ function drawTrackingConfidenceBars(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
   const height = canvas.height
-  ctx.fillStyle = `rgba(224, 195, 62, ${CONFIDENCE_BAR_ALPHA})`
   for (let i = 0; i < bars.length; i++) {
     const x = i * barStepPx
-    const barHeight = Math.max(0, Math.min(1, bars[i].score)) * height
-    ctx.fillRect(x, height - barHeight, Math.max(1, barStepPx), barHeight)
+    drawConfidenceBar(ctx, x, Math.max(1, barStepPx), height, bars[i].score, TRACKING_BAR_COLOR)
   }
 }
 

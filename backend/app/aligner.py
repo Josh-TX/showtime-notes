@@ -19,7 +19,9 @@ UPDATE_FRAMES = 10  # aligner steps every this many new live frames (~500ms)
 
 ACQUIRE_START_RANGE_SECONDS = 20.0  # default scan range for acquire-sync-start; configurable per show
 
-ACQ_WINDOWS = {2.0: (0.40, 0.15, 0.03), 4.0: (0.35, 0.10, 0.02)}
+ACQUIRE_WINDOW_SECONDS = 10.0
+ACQ_RECENCY_TIERS = ((0.25, 8.0), (0.25, 4.0))  # newest quarter counts 8x, next quarter 4x, older half weighs 1.0
+ACQ_MIN_SCORE, ACQ_MIN_LEFT_MARGIN, ACQ_MIN_RIGHT_MARGIN = 0.35, 0.10, 0.02
 LOCK_AGREE_SECONDS = 1.0
 AGREE_TOL_FRAMES = 3
 
@@ -106,7 +108,7 @@ class LiveAligner:
 
     def __init__(self, ref_features: np.ndarray, acquire_lo_s: float = 0.0, acquire_hi_s: float = ACQUIRE_START_RANGE_SECONDS):
         self.n_ref = len(ref_features)
-        self.pad = max([frames(w) for w in ACQ_WINDOWS] + [frames(TRACK_WINDOW_SECONDS)])
+        self.pad = max(frames(ACQUIRE_WINDOW_SECONDS), frames(TRACK_WINDOW_SECONDS))
         self.ref = np.concatenate([np.zeros((self.pad, FEATURE_DIM), dtype=np.float32), ref_features.astype(np.float32)])
         self.set_acquire_range(acquire_lo_s, acquire_hi_s)
 
@@ -147,45 +149,40 @@ class LiveAligner:
             events.append(self._step(i_end_rel))
         return events
 
-    def _scan_acquisition(self, seconds: float, i_end: int) -> dict | None:
-        w = frames(seconds)
+    def _scan_acquisition(self, i_end: int) -> dict | None:
+        w = frames(ACQUIRE_WINDOW_SECONDS)
         if i_end + 1 < w:
             return None
-        min_score, min_left, min_right = ACQ_WINDOWS[seconds]
         j_lo, j_hi = self._acq_j_lo, self._acq_j_hi
         win = self._live[i_end - w + 1 : i_end + 1]
-        scores = _window_scores(self.ref, self.pad, win, np.ones(w, dtype=np.float32), j_lo, j_hi)
+        weights = _recency_weights(w, ACQ_RECENCY_TIERS)
+        scores = _window_scores(self.ref, self.pad, win, weights, j_lo, j_hi)
         b = int(np.argmax(scores))
         j_frac, best, _ = _analyze_peak(scores, b)
         left, right = _side_margins(scores, b)
-        ok = best >= min_score and left >= min_left and right >= min_right
-        return {"seconds": seconds, "ok": ok, "j": j_lo + j_frac, "scores": scores, "j_lo": j_lo}
+        ok = best >= ACQ_MIN_SCORE and left >= ACQ_MIN_LEFT_MARGIN and right >= ACQ_MIN_RIGHT_MARGIN
+        return {"ok": ok, "j": j_lo + j_frac, "scores": scores, "j_lo": j_lo}
 
     def _acquire_step(self, i_end: int) -> StepEvent:
-        passing = []
-        for s in sorted(ACQ_WINDOWS):
-            scan = self._scan_acquisition(s, i_end)
-            if scan is not None and scan["ok"]:
-                passing.append(scan)
-        if passing:
-            longest = passing[-1]
-            offset = longest["j"] - i_end
+        scan = self._scan_acquisition(i_end)
+        passing = scan if scan is not None and scan["ok"] else None
+        if passing is not None:
+            offset = passing["j"] - i_end
             if self._run and abs(offset - self._run[-1][1]) <= AGREE_TOL_FRAMES:
                 self._run.append((i_end, offset))
             else:
                 self._run = [(i_end, offset)]
         else:
             self._run = []
-            longest = None
 
         bars = []
-        if longest is not None:
+        if scan is not None:
             bars = [
-                ConfidenceBar(frame_center_seconds(longest["j_lo"] + i), float(sc))
-                for i, sc in enumerate(longest["scores"])
+                ConfidenceBar(frame_center_seconds(scan["j_lo"] + i), float(sc))
+                for i, sc in enumerate(scan["scores"])
             ]
 
-        if longest is not None and i_end - self._run[0][0] >= frames(LOCK_AGREE_SECONDS):
+        if passing is not None and i_end - self._run[0][0] >= frames(LOCK_AGREE_SECONDS):
             self.mode = "tracking"
             self._offset = self._run[-1][1]
             self._low_streak = 0

@@ -1,5 +1,6 @@
 Showtime notes is a project that allows a team to record audio of a performance rehearsal, take notes on what happens during each song, and then when during real performance  they can see their notes for what's about to happen. The backend is Python and utilizes Demucs and Beat_this. The frontend is vuejs typescript. Uses chroma frames to compare the live song with a recorded song to the notes aligned.
 
+Rely on the user for browser/e2e testing
 
 # Glossary
 

@@ -23,10 +23,13 @@ UPDATE_FRAMES = 10  # aligner steps every this many new live frames (~500 ms of 
 
 # -- initial sync (acquisition) ---------------------------------------------------------------------------------
 ACQ_REF_SECONDS = 20.0  # only the first this-many seconds of the ref are searched for the initial match
-# Window lengths (s) tried each update -> (min best score, min left margin, min right margin); shorter windows need a
-# higher bar. Left/right margin = best score minus the best score more than EXCLUSION_FRAMES earlier/later in the ref.
-# Taking an earlier match is fine, so the right margin can be low; a strong earlier rival is not, so left is strict.
-ACQ_WINDOWS = {2.0: (0.40, 0.15, 0.03), 4.0: (0.35, 0.10, 0.02)}
+ACQUIRE_WINDOW_SECONDS = 4.0  # live audio scored against the ref each update while acquiring
+# Recency weighting of that window, same scheme as TRACK_RECENCY_TIERS below: newest half counts 5x, older half 1x.
+ACQ_RECENCY_TIERS = ((0.5, 5.0),)
+# Acceptance bar for a candidate: (min best score, min left margin, min right margin). Left/right margin = best score
+# minus the best score more than EXCLUSION_FRAMES earlier/later in the ref. Taking an earlier match is fine, so the
+# right margin can be low; a strong earlier rival is not, so left is strict.
+ACQ_MIN_SCORE, ACQ_MIN_LEFT_MARGIN, ACQ_MIN_RIGHT_MARGIN = 0.35, 0.10, 0.02
 LOCK_AGREE_SECONDS = 1.0  # passing candidates must agree on the offset for this long of live audio before locking
 AGREE_TOL_FRAMES = 3  # offsets within this many frames (~150 ms) count as agreeing
 
@@ -193,37 +196,32 @@ class Result:
 class Aligner:
     def __init__(self, ref_features: np.ndarray) -> None:
         self.n_ref = len(ref_features)
-        self.pad = max([frames(w) for w in ACQ_WINDOWS] + [frames(TRACK_WINDOW_SECONDS)])
+        self.pad = max(frames(ACQUIRE_WINDOW_SECONDS), frames(TRACK_WINDOW_SECONDS))
         self.ref = np.concatenate([np.zeros((self.pad, FEATURE_DIM), dtype=np.float32), ref_features.astype(np.float32)])
         self.mode = "acquiring"  # 'acquiring' | 'tracking'
         self._run: list[tuple[int, float]] = []  # consecutive passing candidates: (newest live frame, offset)
         self._offset = 0.0  # tracking: ref frame = live frame + offset
 
-    def _scan_acquisition(self, seconds: float, live: np.ndarray, i_end: int) -> dict | None:
-        """Score one acquisition window length; None if not enough live audio yet."""
-        w = frames(seconds)
+    def _scan_acquisition(self, live: np.ndarray, i_end: int) -> dict | None:
+        """Score the acquisition window; None if not enough live audio yet."""
+        w = frames(ACQUIRE_WINDOW_SECONDS)
         if i_end + 1 < w:
             return None
-        min_score, min_left, min_right = ACQ_WINDOWS[seconds]
         j_hi = min(frames(ACQ_REF_SECONDS), self.n_ref - 1)
         win = live[i_end - w + 1 : i_end + 1]
-        scores = window_scores(self.ref, self.pad, win, np.ones(w, dtype=np.float32), 0, j_hi)
+        weights = recency_weights(w, ACQ_RECENCY_TIERS)
+        scores = window_scores(self.ref, self.pad, win, weights, 0, j_hi)
         b = int(np.argmax(scores))
         j, best, _ = analyze_peak(scores, b)
         left, right = side_margins(scores, b)
-        ok = best >= min_score and left >= min_left and right >= min_right
-        return {"seconds": seconds, "ok": ok, "j": j, "left": left, "right": right}
+        ok = best >= ACQ_MIN_SCORE and left >= ACQ_MIN_LEFT_MARGIN and right >= ACQ_MIN_RIGHT_MARGIN
+        return {"ok": ok, "j": j, "left": left, "right": right}
 
     def _acquire_step(self, live: np.ndarray, i_end: int, result: Result) -> bool:
         """Runs one acquisition-phase update. Returns True if this step locked (switches self.mode to 'tracking')."""
-        passing = []
-        for s in sorted(ACQ_WINDOWS):
-            scan = self._scan_acquisition(s, live, i_end)
-            if scan is not None and scan["ok"]:
-                passing.append(scan)
-        if passing:
-            longest = passing[-1]  # sorted ascending, so this is the longest window that passed
-            offset = longest["j"] - i_end
+        scan = self._scan_acquisition(live, i_end)
+        if scan is not None and scan["ok"]:
+            offset = scan["j"] - i_end
             if self._run and abs(offset - self._run[-1][1]) <= AGREE_TOL_FRAMES:
                 self._run.append((i_end, offset))
             else:
@@ -235,9 +233,9 @@ class Aligner:
             self.mode = "tracking"
             self._offset = self._run[-1][1]
             result.acquisition_time_s = (i_end + 1) * FRAME_SECONDS
-            result.acquisition_left_margin = longest["left"]
-            result.acquisition_right_margin = longest["right"]
-            result.acquisition_window_s = longest["seconds"]
+            result.acquisition_left_margin = scan["left"]
+            result.acquisition_right_margin = scan["right"]
+            result.acquisition_window_s = ACQUIRE_WINDOW_SECONDS
             return True
         return False
 

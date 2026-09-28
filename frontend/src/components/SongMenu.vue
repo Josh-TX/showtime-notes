@@ -28,7 +28,7 @@ function targetSyncColor(): string {
         <span class="name">{{ song.name }}</span>
         <span v-if="song.status === 'recording'" class="rec-dot" />
         <span v-else-if="song.status === 'processing'" class="spinner" />
-        <SyncArrows v-else-if="song.status === 'syncing'" :color="targetSyncColor()" :size="16" />
+        <SyncArrows v-else-if="song.id === store.show?.sync.targetSongId" :color="targetSyncColor()" :size="16" />
       </div>
     </div>
     <NewRecordingButton />

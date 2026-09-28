@@ -28,12 +28,12 @@ LEVEL_LOUD_RMS = 4e-3
 
 # Relative-loudness dimension: each frame's RMS (over a HOP-wide slice centered on the same instant as the chroma
 # frame -- see _center_off) is ranked as a percentile against the trailing LOUDNESS_WINDOW_SECONDS of RMS history
-# (less at the start of a file), then mapped from [0, 1] to [-1, 1] and scaled by LOUDNESS_WEIGHT. This is
-# per-file-relative (not absolute dB), so it identifies "loud moment for this recording" (e.g. a beat) even when
-# comparing two files recorded at different overall volumes. Percentile rank is scale/monotonic-transform invariant,
-# so it doesn't matter that RMS is linear rather than log here.
+# (less at the start of a file), then mapped from [0, 1] to [-1, 1]. This is per-file-relative (not absolute dB), so
+# it identifies "loud moment for this recording" (e.g. a beat) even when comparing two files recorded at different
+# overall volumes. Percentile rank is scale/monotonic-transform invariant, so it doesn't matter that RMS is linear
+# rather than log here.
 LOUDNESS_WINDOW_SECONDS = 8.0
-LOUDNESS_WEIGHT = 0.6  # relative to chroma's ~[-1, 1] correlation range; tune via run_suite.py
+LOUDNESS_WEIGHT = 0.6  # how much this [-1, 1] dim counts against unit-length chroma when folded into one direction (see compute_chroma); tune via run_suite.py
 
 FEATURE_DIM = 13  # 12 chroma pitch classes + 1 relative loudness
 BATCH_FRAMES = 512  # frames per FFT batch when precomputing a whole file; bounds peak memory, doesn't affect output
@@ -54,10 +54,10 @@ def frame_center_seconds(frame: float) -> float:
     return (frame * HOP + N_FFT / 2) / SR
 
 
-def _frames_to_chroma(frames: np.ndarray) -> np.ndarray:
-    """(n, N_FFT) audio frames -> (n, 12). Rows are p * chroma, where chroma is mean-centered and unit length and p
-    in [0, 1] is presence (from RMS). The dot product of two sounding frames is the chroma correlation scaled by
-    both frames' presence; a silent frame (p=0) dots to 0 against anything."""
+def _frames_to_chroma(frames: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """(n, N_FFT) audio frames -> (presence p (n,1) in [0,1] from RMS, unit-length mean-centered chroma direction
+    (n,12)). p is folded in by the caller after combining chroma direction with the loudness dimension, so that a
+    silent frame (p=0) still dots to 0 against anything."""
     rms = np.sqrt(np.mean(np.square(frames), axis=1, keepdims=True))
     ramp = np.log(LEVEL_LOUD_RMS / LEVEL_QUIET_RMS)
     p = np.clip(np.log(np.maximum(rms, 1e-12) / LEVEL_QUIET_RMS) / ramp, 0.0, 1.0)
@@ -66,7 +66,7 @@ def _frames_to_chroma(frames: np.ndarray) -> np.ndarray:
     pc -= pc.mean(axis=1, keepdims=True)
     norm = np.linalg.norm(pc, axis=1, keepdims=True)
     chroma = np.where(norm > 1e-6, pc / np.maximum(norm, 1e-6), 0.0)
-    return (p * chroma).astype(np.float32)
+    return p, chroma.astype(np.float32)
 
 
 def _frames_to_local_rms(frames: np.ndarray) -> np.ndarray:
@@ -76,9 +76,8 @@ def _frames_to_local_rms(frames: np.ndarray) -> np.ndarray:
 
 
 def _causal_relative_loudness(local_rms: np.ndarray) -> np.ndarray:
-    """(n,) RMS values -> (n,) relative-loudness dim: percentile rank of each value against itself and up to
-    _loudness_window_frames - 1 preceding values (fewer at the start of the file, never later ones), mapped to
-    [-1, 1] and scaled by LOUDNESS_WEIGHT."""
+    """(n,) RMS values -> (n,) relative-loudness dim in [-1, 1]: percentile rank of each value against itself and up
+    to _loudness_window_frames - 1 preceding values (fewer at the start of the file, never later ones)."""
     n = len(local_rms)
     if n == 0:
         return np.zeros(0, dtype=np.float32)
@@ -88,7 +87,7 @@ def _causal_relative_loudness(local_rms: np.ndarray) -> np.ndarray:
     current = windows[:, -1:]
     valid = windows > -np.inf
     percentile = np.sum((windows <= current) & valid, axis=1) / np.sum(valid, axis=1)
-    return (LOUDNESS_WEIGHT * (2.0 * percentile - 1.0)).astype(np.float32)
+    return (2.0 * percentile - 1.0).astype(np.float32)
 
 
 def compute_chroma(audio: np.ndarray) -> np.ndarray:
@@ -98,16 +97,24 @@ def compute_chroma(audio: np.ndarray) -> np.ndarray:
     n_frames = max(0, (len(audio) - N_FFT) // HOP + 1)
     if n_frames == 0:
         return np.zeros((0, FEATURE_DIM), dtype=np.float32)
-    chroma = np.zeros((n_frames, 12), dtype=np.float32)
+    presence = np.zeros((n_frames, 1), dtype=np.float32)
+    chroma_unit = np.zeros((n_frames, 12), dtype=np.float32)
     local_rms = np.zeros(n_frames, dtype=np.float64)
     for start in range(0, n_frames, BATCH_FRAMES):
         end = min(start + BATCH_FRAMES, n_frames)
         idx = np.arange(start, end) * HOP
         batch = np.stack([audio[i : i + N_FFT] for i in idx])
-        chroma[start:end] = _frames_to_chroma(batch)
+        presence[start:end], chroma_unit[start:end] = _frames_to_chroma(batch)
         local_rms[start:end] = _frames_to_local_rms(batch)
-    loudness = _causal_relative_loudness(local_rms)
-    return np.concatenate([chroma, loudness[:, None]], axis=1)
+    loudness_pm1 = _causal_relative_loudness(local_rms)
+
+    # Fold chroma direction + weighted loudness into a single unit direction, then scale by presence, so every frame
+    # has norm <= 1 and a dot product between two frames is bounded by (and only reaches) 1 when both are fully
+    # present and identical in chroma and loudness rank -- regardless of LOUDNESS_WEIGHT.
+    raw = np.concatenate([chroma_unit, (LOUDNESS_WEIGHT * loudness_pm1)[:, None]], axis=1)
+    raw_norm = np.linalg.norm(raw, axis=1, keepdims=True)
+    direction = np.where(raw_norm > 1e-6, raw / np.maximum(raw_norm, 1e-6), 0.0)
+    return (presence * direction).astype(np.float32)
 
 
 def decode_audio(path: Path) -> np.ndarray:
