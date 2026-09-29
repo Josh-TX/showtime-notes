@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SyncIndicator from './SyncIndicator.vue'
 import ListenerModal from './ListenerModal.vue'
+import SettingsModal from './SettingsModal.vue'
 </script>
 
 <template>
@@ -8,6 +9,7 @@ import ListenerModal from './ListenerModal.vue'
     <span class="brand">Showtime Notes</span>
     <SyncIndicator />
     <ListenerModal class="right" />
+    <SettingsModal />
   </header>
 </template>
 

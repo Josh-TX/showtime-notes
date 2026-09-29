@@ -7,19 +7,17 @@ import Timeline from './components/Timeline.vue'
 import RecordingTimeline from './components/RecordingTimeline.vue'
 import CandidatesPanel from './components/CandidatesPanel.vue'
 import { useShowStore } from './store/show'
-
-const DEVICE_NAME_STORAGE_KEY = 'deviceName'
+import { clientSettings, setDeviceName } from './store/clientSettings'
 
 const store = useShowStore()
 const deviceNameInput = ref('')
 
-const storedDeviceName = localStorage.getItem(DEVICE_NAME_STORAGE_KEY)
-if (storedDeviceName) store.connect(storedDeviceName)
+if (clientSettings.deviceName) store.connect(clientSettings.deviceName)
 
 function join(): void {
   const deviceName = deviceNameInput.value.trim()
   if (!deviceName) return
-  localStorage.setItem(DEVICE_NAME_STORAGE_KEY, deviceName)
+  setDeviceName(deviceName)
   store.connect(deviceName)
 }
 </script>

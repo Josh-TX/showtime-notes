@@ -2,14 +2,12 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
+import { clientSettings } from '../store/clientSettings'
 
-const PIXELS_PER_SECOND = 60
 const PEAKS_PER_SECOND = 20
 const WAVEFORM_LANE_HEIGHT = 120
-const WAVEFORM_HEIGHT = WAVEFORM_LANE_HEIGHT * 2
 const NORMAL_BEAT_ALPHA = 0.08
 const DOWNBEAT_ALPHA = 0.5
-const BAR_OFFSET_PERCENT = 0.3
 const CONFIDENCE_BAR_ALPHA = 0.7
 const CONFIDENCE_BAR_BG_ALPHA = 0.03
 const CONFIDENCE_BAR_MAX_HEIGHT = 120
@@ -32,29 +30,33 @@ const displayPosition = ref<number | null>(null)
 // ref-seconds at local x=0 of trackingBarsCanvas, from whichever bars snapshot is currently drawn into it
 const trackingBarsOriginSeconds = ref<number | null>(null)
 
+// Timeline width setting = seconds visible across the container, so zoom follows the container width.
+const pixelsPerSecond = computed(() => viewportWidthPx.value / clientSettings.timelineWidthSeconds)
+const barOffsetFraction = computed(() => clientSettings.autoScrollLeftOffsetPercent / 100)
+
 const durationSeconds = computed(() => {
   const fromPeaks = (store.waveform?.peaks.vocals.length ?? 0) / PEAKS_PER_SECOND
   return store.selectedSong?.durationSeconds ?? fromPeaks
 })
-const canvasWidthPx = computed(() => Math.max(1, durationSeconds.value * PIXELS_PER_SECOND))
-const startWidthPx = computed(() => Math.round(viewportWidthPx.value * BAR_OFFSET_PERCENT))
-const endWidthPx = computed(() => Math.round(viewportWidthPx.value * (1 - BAR_OFFSET_PERCENT)))
+const canvasWidthPx = computed(() => Math.max(1, durationSeconds.value * pixelsPerSecond.value))
+const startWidthPx = computed(() => Math.round(viewportWidthPx.value * barOffsetFraction.value))
+const endWidthPx = computed(() => Math.round(viewportWidthPx.value * (1 - barOffsetFraction.value)))
 const timelineWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value + endWidthPx.value)
 const totalHeightPx = computed(() => viewportHeightPx.value)
 
 const positionLeftPx = computed(() =>
-  displayPosition.value === null ? null : startWidthPx.value + displayPosition.value * PIXELS_PER_SECOND,
+  displayPosition.value === null ? null : startWidthPx.value + displayPosition.value * pixelsPerSecond.value,
 )
 
-const barStepPx = PIXELS_PER_SECOND / PEAKS_PER_SECOND
-const trackingBarsWidthPx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx))
+const barStepPx = computed(() => pixelsPerSecond.value / PEAKS_PER_SECOND)
+const trackingBarsWidthPx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx.value))
 // Mirrors positionLeftPx's anchor extrapolation, offset by where the drawn window's first bar sits relative to
 // the anchor - so the window glides in lockstep with the position bar instead of jumping on every new snapshot.
 const trackingBarsLeftPx = computed(() => {
   const anchor = store.positionAnchor
   if (anchor === null || trackingBarsOriginSeconds.value === null || displayPosition.value === null) return null
   const drift = displayPosition.value - anchor.refSeconds
-  return startWidthPx.value + (trackingBarsOriginSeconds.value + drift) * PIXELS_PER_SECOND
+  return startWidthPx.value + (trackingBarsOriginSeconds.value + drift) * pixelsPerSecond.value
 })
 
 // Acquiring bars are anchors too ("live-now is at this ref time"), so between snapshots they glide right
@@ -62,7 +64,7 @@ const trackingBarsLeftPx = computed(() => {
 const acquiringBarsShiftPx = ref(0)
 
 function timeToLeft(seconds: number): number {
-  return startWidthPx.value + seconds * PIXELS_PER_SECOND
+  return startWidthPx.value + seconds * pixelsPerSecond.value
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -99,12 +101,12 @@ function drawWaveform(): void {
   ctx.fillStyle = '#e0c33e'
   for (const beat of waveform.beats) {
     if (downbeatSet.has(beat)) continue
-    const x = Math.round(beat * PIXELS_PER_SECOND)
+    const x = Math.round(beat * pixelsPerSecond.value)
     ctx.fillRect(x, 0, 1, canvas.height)
   }
   ctx.globalAlpha = DOWNBEAT_ALPHA
   for (const beat of waveform.downbeats) {
-    const x = Math.round(beat * PIXELS_PER_SECOND)
+    const x = Math.round(beat * pixelsPerSecond.value)
     ctx.fillRect(x, 0, 1, canvas.height)
   }
   ctx.globalAlpha = 1
@@ -114,7 +116,7 @@ function drawWaveform(): void {
   const novocalsCenter = WAVEFORM_LANE_HEIGHT + half
   const drawPeaks = (peaks: number[], center: number, color: string) => {
     ctx.fillStyle = color
-    const step = PIXELS_PER_SECOND / PEAKS_PER_SECOND
+    const step = barStepPx.value
     for (let i = 0; i < peaks.length; i++) {
       const h = Math.min(1, peaks[i]) * half
       const x = i * step
@@ -142,9 +144,9 @@ function drawAcquiringConfidenceBars(): void {
   const height = canvas.height
   for (let i = 0; i < store.confidenceBars.length; i++) {
     const bar = store.confidenceBars[i]
-    const x = bar.refSeconds * PIXELS_PER_SECOND
+    const x = bar.refSeconds * pixelsPerSecond.value
     const color = candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR
-    drawConfidenceBar(ctx, x, Math.max(1, barStepPx), height, bar.score, color)
+    drawConfidenceBar(ctx, x, Math.max(1, barStepPx.value), height, bar.score, color)
   }
 }
 
@@ -168,8 +170,8 @@ function drawTrackingConfidenceBars(): void {
 
   const height = canvas.height
   for (let i = 0; i < bars.length; i++) {
-    const x = i * barStepPx
-    drawConfidenceBar(ctx, x, Math.max(1, barStepPx), height, bars[i].score, TRACKING_BAR_COLOR)
+    const x = i * barStepPx.value
+    drawConfidenceBar(ctx, x, Math.max(1, barStepPx.value), height, bars[i].score, TRACKING_BAR_COLOR)
   }
 }
 
@@ -191,9 +193,9 @@ function tick(): void {
     displayPosition.value = null
   }
   acquiringBarsShiftPx.value =
-    store.snapshotWallclockMs === null ? 0 : ((Date.now() - store.snapshotWallclockMs) / 1000) * PIXELS_PER_SECOND
+    store.snapshotWallclockMs === null ? 0 : ((Date.now() - store.snapshotWallclockMs) / 1000) * pixelsPerSecond.value
   if (autoScroll.value && displayPosition.value !== null && containerEl.value) {
-    containerEl.value.scrollLeft = displayPosition.value * PIXELS_PER_SECOND
+    containerEl.value.scrollLeft = displayPosition.value * pixelsPerSecond.value
   }
   rafId = requestAnimationFrame(tick)
 }
@@ -202,7 +204,7 @@ function onTimelineDoubleClick(event: MouseEvent): void {
   if (!store.selectedSong) return
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
   const x = event.clientX - rect.left - startWidthPx.value
-  const seconds = Math.max(0, x / PIXELS_PER_SECOND)
+  const seconds = Math.max(0, x / pixelsPerSecond.value)
   const text = window.prompt('Timeline note text:')
   if (text) api.addTimelineNote(store.selectedSong.id, seconds, text)
 }
@@ -219,6 +221,7 @@ function editNote(noteId: string, currentText: string): void {
 }
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
+watch(pixelsPerSecond, () => nextTick(refreshLayout))
 watch(
   () => [store.confidenceBars, store.bestCandidates, store.syncPhase],
   () =>
