@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
 import { clientSettings } from '../store/clientSettings'
+import { PositionSmoother, type BarState } from './smoothing'
 
 const PEAKS_PER_SECOND = 20
 const WAVEFORM_LANE_HEIGHT = 120
@@ -27,6 +28,8 @@ const viewportWidthPx = ref(400)
 const viewportHeightPx = ref(200)
 const autoScroll = ref(true)
 const displayPosition = ref<number | null>(null)
+const positionBars = ref<BarState[]>([])
+const smoother = new PositionSmoother()
 // ref-seconds at local x=0 of trackingBarsCanvas, from whichever bars snapshot is currently drawn into it
 const trackingBarsOriginSeconds = ref<number | null>(null)
 
@@ -44,9 +47,9 @@ const endWidthPx = computed(() => Math.round(viewportWidthPx.value * (1 - barOff
 const timelineWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value + endWidthPx.value)
 const totalHeightPx = computed(() => viewportHeightPx.value)
 
-const positionLeftPx = computed(() =>
-  displayPosition.value === null ? null : startWidthPx.value + displayPosition.value * pixelsPerSecond.value,
-)
+function positionToLeft(position: number): number {
+  return startWidthPx.value + position * pixelsPerSecond.value
+}
 
 const barStepPx = computed(() => pixelsPerSecond.value / PEAKS_PER_SECOND)
 const trackingBarsWidthPx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx.value))
@@ -184,18 +187,19 @@ function refreshLayout(): void {
 }
 
 function tick(): void {
-  const anchor = store.positionAnchor
-  if (anchor) {
-    const extrapolated = anchor.refSeconds + (Date.now() - anchor.wallclockMs) / 1000
-    displayPosition.value =
-      durationSeconds.value > 0 ? Math.max(0, Math.min(durationSeconds.value, extrapolated)) : Math.max(0, extrapolated)
-  } else {
-    displayPosition.value = null
-  }
+  const nowMs = Date.now()
+  const pps = pixelsPerSecond.value
+  const frame = smoother.update(nowMs, store.positionAnchor, {
+    autoScroll: autoScroll.value,
+    scrollSeconds: (containerEl.value?.scrollLeft ?? 0) / pps,
+    durationSeconds: durationSeconds.value,
+  })
+  displayPosition.value = frame.primaryPosition
+  positionBars.value = frame.bars
   acquiringBarsShiftPx.value =
     store.snapshotWallclockMs === null ? 0 : ((Date.now() - store.snapshotWallclockMs) / 1000) * pixelsPerSecond.value
-  if (autoScroll.value && displayPosition.value !== null && containerEl.value) {
-    containerEl.value.scrollLeft = displayPosition.value * pixelsPerSecond.value
+  if (frame.scrollPosition !== null && containerEl.value) {
+    containerEl.value.scrollLeft = frame.scrollPosition * pps
   }
   rafId = requestAnimationFrame(tick)
 }
@@ -221,6 +225,7 @@ function editNote(noteId: string, currentText: string): void {
 }
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
+watch(() => store.selectedSong?.id, () => smoother.reset())
 watch(pixelsPerSecond, () => nextTick(refreshLayout))
 watch(
   () => [store.confidenceBars, store.bestCandidates, store.syncPhase],
@@ -282,7 +287,12 @@ onUnmounted(() => {
           >
             {{ note.text }}
           </div>
-          <div v-if="positionLeftPx !== null" class="position-bar" :style="{ left: `${positionLeftPx}px` }" />
+          <div
+            v-for="(bar, i) in positionBars"
+            :key="i"
+            class="position-bar"
+            :style="{ left: `${positionToLeft(bar.position)}px`, opacity: bar.opacity }"
+          />
         </div>
       </div>
     </div>
