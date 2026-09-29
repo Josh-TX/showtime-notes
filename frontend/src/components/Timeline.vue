@@ -8,7 +8,8 @@ import { PositionSmoother, type BarState } from './smoothing'
 const PEAKS_PER_SECOND = 20
 const WAVEFORM_LANE_HEIGHT = 120
 const NORMAL_BEAT_ALPHA = 0.08
-const DOWNBEAT_ALPHA = 0.5
+const DOWNBEAT_ALPHA = 0.25
+const WAVEFORM_ALPHA = 0.5
 const CONFIDENCE_BAR_ALPHA = 0.7
 const CONFIDENCE_BAR_BG_ALPHA = 0.03
 const CONFIDENCE_BAR_MAX_HEIGHT = 120
@@ -126,8 +127,10 @@ function drawWaveform(): void {
       ctx.fillRect(x, center - h, Math.max(1, step), Math.max(1, h * 2))
     }
   }
+  ctx.globalAlpha = WAVEFORM_ALPHA
   drawPeaks(waveform.peaks.vocals, vocalsCenter, '#4a9eff')
   drawPeaks(waveform.peaks.novocals, novocalsCenter, '#7a7a7a')
+  ctx.globalAlpha = 1
 }
 
 // Acquiring-phase confidence bars: no lock yet, so they span the whole scan range and sit at fixed absolute
@@ -326,12 +329,13 @@ onUnmounted(() => {
   position: relative;
   display: flex;
   height: 100%;
+  background: #050506;
 }
 .start-area,
 .end-area {
   flex: none;
   height: 100%;
-  background: #14161a;
+  background: repeating-linear-gradient(45deg, #050506 0 8px, #101114 8px 16px);
 }
 .wave-canvas {
   flex: none;
@@ -347,8 +351,8 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 2px;
-  background: #ff3b3b;
+  width: 1px;
+  background: #fff;
   z-index: 3;
 }
 .timeline-note {
