@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
 import { ws } from '../ws'
-import type { ConfidenceBar, Song, ShowInfo, SongSummary, SyncPhase, Waveform } from '../types'
+import type { ConfidenceBar, Song, ShowInfo, SongSummary, SyncCandidate, SyncPhase, Waveform } from '../types'
 
 const HAS_AUDIO_STATUSES = new Set(['ready', 'syncing'])
 
@@ -23,6 +23,7 @@ export const useShowStore = defineStore('show', {
     recordingPeaks: [] as number[],
     positionAnchor: null as { refSeconds: number; wallclockMs: number } | null,
     confidenceBars: [] as ConfidenceBar[],
+    bestCandidates: [] as SyncCandidate[],
     syncPhase: null as SyncPhase | null,
     loudness: 0,
     isListener: false,
@@ -50,10 +51,12 @@ export const useShowStore = defineStore('show', {
         if (payload.sync.targetSongId !== this.selectedSongId) {
           this.positionAnchor = null
           this.confidenceBars = []
+          this.bestCandidates = []
           this.syncPhase = null
         } else {
           this.positionAnchor = anchorFromSync(payload.sync)
           this.confidenceBars = payload.sync.bars
+          this.bestCandidates = payload.sync.bestCandidates
           this.syncPhase = payload.sync.phase
         }
       })
@@ -69,10 +72,12 @@ export const useShowStore = defineStore('show', {
           anchorRefSeconds: number | null
           anchorWallclockMs: number | null
           bars: ConfidenceBar[]
+          bestCandidates: SyncCandidate[]
         }) => {
           if (payload.targetSongId !== this.selectedSongId) return
           this.positionAnchor = anchorFromSync(payload)
           this.confidenceBars = payload.bars
+          this.bestCandidates = payload.bestCandidates
           this.syncPhase = payload.phase
         },
       )
@@ -111,10 +116,12 @@ export const useShowStore = defineStore('show', {
       if (this.show?.sync.targetSongId === id) {
         this.positionAnchor = anchorFromSync(this.show.sync)
         this.confidenceBars = this.show.sync.bars
+        this.bestCandidates = this.show.sync.bestCandidates
         this.syncPhase = this.show.sync.phase
       } else {
         this.positionAnchor = null
         this.confidenceBars = []
+        this.bestCandidates = []
         this.syncPhase = null
       }
       this.waveform = null
@@ -135,6 +142,7 @@ export const useShowStore = defineStore('show', {
       this.recordingPeaks = []
       this.positionAnchor = null
       this.confidenceBars = []
+      this.bestCandidates = []
       this.syncPhase = null
     },
     cancelStartRecording(): void {

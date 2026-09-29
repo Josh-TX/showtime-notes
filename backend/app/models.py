@@ -70,6 +70,16 @@ class ConfidenceBar(ApiModel):
     score: float
 
 
+class SyncCandidate(ApiModel):
+    """One candidate ref-song position considered while acquiring: a local-maximum score peak (indexing into
+    the sibling `bars` list) with its exclusion-zone margins to the next-best rival on each side."""
+
+    bar_index: int
+    score: float
+    left_margin: float
+    right_margin: float
+
+
 class SyncState(ApiModel):
     status: SyncStatus = SyncStatus.NONE
     phase: SyncPhase | None = None  # None iff status is NONE
@@ -78,6 +88,7 @@ class SyncState(ApiModel):
     anchor_ref_seconds: float | None = None  # ref-song time at anchor_wallclock_ms; None while acquiring
     anchor_wallclock_ms: float | None = None
     bars: list[ConfidenceBar] = []
+    best_candidates: list[SyncCandidate] = []  # acquiring only; empty while tracking
 
 
 class ListenerInfo(ApiModel):

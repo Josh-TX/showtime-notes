@@ -5,6 +5,7 @@ import SongMenu from './components/SongMenu.vue'
 import SongPanel from './components/SongPanel.vue'
 import Timeline from './components/Timeline.vue'
 import RecordingTimeline from './components/RecordingTimeline.vue'
+import CandidatesPanel from './components/CandidatesPanel.vue'
 import { useShowStore } from './store/show'
 
 const DEVICE_NAME_STORAGE_KEY = 'deviceName'
@@ -42,6 +43,7 @@ function join(): void {
       <RecordingTimeline v-if="store.selectedSong?.status === 'recording'" />
       <Timeline v-else />
     </div>
+    <CandidatesPanel />
   </div>
 </template>
 

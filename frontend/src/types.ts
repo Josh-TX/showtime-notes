@@ -33,6 +33,13 @@ export type SyncStatus = 'none' | 'syncing'
 // Sub-state of SyncStatus 'syncing': 'acquiring' while searching for a lock, 'tracking' once locked on.
 export type SyncPhase = 'acquiring' | 'tracking'
 
+export interface SyncCandidate {
+  barIndex: number
+  score: number
+  leftMargin: number
+  rightMargin: number
+}
+
 export interface SyncState {
   status: SyncStatus
   phase: SyncPhase | null
@@ -41,6 +48,7 @@ export interface SyncState {
   anchorRefSeconds: number | null
   anchorWallclockMs: number | null
   bars: ConfidenceBar[]
+  bestCandidates: SyncCandidate[]
 }
 
 export interface ListenerInfo {

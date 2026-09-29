@@ -6,7 +6,7 @@ import time
 from . import chroma, storage, ws_manager
 from .aligner import LiveAligner, StepEvent
 from .config import CAPTURE_SR
-from .models import AcquireMode, ConfidenceBar, SongStatus, SyncPhase, SyncState, SyncStatus
+from .models import AcquireMode, ConfidenceBar, SongStatus, SyncCandidate, SyncPhase, SyncState, SyncStatus
 from .resample import StreamResampler
 from .state import state
 
@@ -90,6 +90,15 @@ async def _handle_step_event(event: StepEvent) -> None:
     bars = [{"refSeconds": b.ref_seconds, "score": b.score} for b in event.bars]
     state.sync.bars = [ConfidenceBar(ref_seconds=b.ref_seconds, score=b.score) for b in event.bars]
 
+    candidates = event.candidates if phase == SyncPhase.ACQUIRING else []
+    best_candidates = [
+        {"barIndex": c.bar_index, "score": c.score, "leftMargin": c.left_margin, "rightMargin": c.right_margin} for c in candidates
+    ]
+    state.sync.best_candidates = [
+        SyncCandidate(bar_index=c.bar_index, score=c.score, left_margin=c.left_margin, right_margin=c.right_margin)
+        for c in candidates
+    ]
+
     await ws_manager.manager.broadcast(
         "sync_update",
         {
@@ -98,6 +107,7 @@ async def _handle_step_event(event: StepEvent) -> None:
             "anchorRefSeconds": state.sync.anchor_ref_seconds,
             "anchorWallclockMs": state.sync.anchor_wallclock_ms,
             "bars": bars,
+            "bestCandidates": best_candidates,
         },
     )
 

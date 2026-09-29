@@ -15,7 +15,7 @@ import numpy as np
 
 from .chroma import FEATURE_DIM, FRAME_SECONDS, frame_center_seconds
 
-UPDATE_FRAMES = 10  # aligner steps every this many new live frames (~500ms)
+UPDATE_FRAMES = 20  # aligner steps every this many new live frames (~1s)
 
 ACQUIRE_START_RANGE_SECONDS = 20.0  # default scan range for acquire-sync-start; configurable per show
 
@@ -90,6 +90,34 @@ def _side_margins(scores: np.ndarray, index: int) -> tuple[float, float]:
 
 
 @dataclass
+class Candidate:
+    bar_index: int
+    score: float
+    left_margin: float
+    right_margin: float
+
+
+def _best_candidates(scores: np.ndarray, max_candidates: int = 3) -> list[Candidate]:
+    """Top-N distinct local-maximum peaks in an acquisition scan, for the acquiring-only debug view.
+
+    Mirrors _scan_acquisition's own lock logic: take the best remaining peak, exclude the same
+    EXCLUSION_FRAMES-wide zone around it used elsewhere to separate "distinct" peaks, repeat. Margins are
+    computed against the original scores so nearby candidates correctly show up as rivals of each other.
+    """
+    working = scores.astype(np.float32).copy()
+    candidates: list[Candidate] = []
+    for _ in range(max_candidates):
+        b = int(np.argmax(working))
+        best = float(scores[b])
+        if best < ACQ_MIN_SCORE:
+            break
+        left, right = _side_margins(scores, b)
+        candidates.append(Candidate(b, best, left, right))
+        working[max(0, b - EXCLUSION_FRAMES) : b + EXCLUSION_FRAMES + 1] = -np.inf
+    return candidates
+
+
+@dataclass
 class ConfidenceBar:
     ref_seconds: float
     score: float
@@ -102,6 +130,7 @@ class StepEvent:
     just_dropped: bool  # tracking -> acquiring (sustained low confidence)
     position_seconds: float | None  # None unless mode == 'tracking'
     bars: list[ConfidenceBar] = field(default_factory=list)
+    candidates: list[Candidate] = field(default_factory=list)  # acquiring only; see _best_candidates
 
 
 class LiveAligner:
@@ -180,11 +209,13 @@ class LiveAligner:
             self._run = []
 
         bars = []
+        candidates = []
         if scan is not None:
             bars = [
                 ConfidenceBar(frame_center_seconds(scan["j_lo"] + i), float(sc))
                 for i, sc in enumerate(scan["scores"])
             ]
+            candidates = _best_candidates(scan["scores"])
 
         if passing is not None and i_end - self._run[0][0] >= frames(LOCK_AGREE_SECONDS):
             self.mode = "tracking"
@@ -193,7 +224,7 @@ class LiveAligner:
             # bars are still shaped for the acquiring scan range; sending them here would flash
             # mismatched bars in the tracking color, so send none until _track_step computes real ones
             return StepEvent("tracking", True, False, frame_center_seconds(i_end + self._offset), [])
-        return StepEvent("acquiring", False, False, None, bars)
+        return StepEvent("acquiring", False, False, None, bars, candidates)
 
     def _track_step(self, i_end: int) -> StepEvent:
         w = min(frames(TRACK_WINDOW_SECONDS), i_end + 1)

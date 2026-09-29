@@ -15,6 +15,8 @@ const CONFIDENCE_BAR_BG_ALPHA = 0.03
 const CONFIDENCE_BAR_MAX_HEIGHT = 120
 const ACQUIRING_BAR_COLOR = '#e0c33e'
 const TRACKING_BAR_COLOR = '#3ecf5f'
+// Rank order (best candidate first) maps to these colors; shared with CandidatesPanel.vue's color key.
+const CANDIDATE_COLORS = ['#00e5ff', '#ff00ff', '#ff9800']
 
 const store = useShowStore()
 
@@ -131,10 +133,14 @@ function drawAcquiringConfidenceBars(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   if (store.syncPhase !== 'acquiring' || !store.confidenceBars.length) return
 
+  const candidateColorByBarIndex = new Map(store.bestCandidates.map((c, rank) => [c.barIndex, CANDIDATE_COLORS[rank]]))
+
   const height = canvas.height
-  for (const bar of store.confidenceBars) {
+  for (let i = 0; i < store.confidenceBars.length; i++) {
+    const bar = store.confidenceBars[i]
     const x = bar.refSeconds * PIXELS_PER_SECOND
-    drawConfidenceBar(ctx, x, Math.max(1, barStepPx), height, bar.score, ACQUIRING_BAR_COLOR)
+    const color = candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR
+    drawConfidenceBar(ctx, x, Math.max(1, barStepPx), height, bar.score, color)
   }
 }
 
@@ -208,7 +214,7 @@ function editNote(noteId: string, currentText: string): void {
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
 watch(
-  () => [store.confidenceBars, store.syncPhase],
+  () => [store.confidenceBars, store.bestCandidates, store.syncPhase],
   () =>
     nextTick(() => {
       drawAcquiringConfidenceBars()
