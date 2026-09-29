@@ -83,10 +83,9 @@ async def _handle_step_event(event: StepEvent) -> None:
 
     if event.mode == "tracking" and event.position_seconds is not None:
         state.sync.anchor_ref_seconds = event.position_seconds
-        state.sync.anchor_wallclock_ms = time.time() * 1000
     else:
         state.sync.anchor_ref_seconds = None
-        state.sync.anchor_wallclock_ms = None
+    state.sync.wallclock_ms = time.time() * 1000
     bars = [{"refSeconds": b.ref_seconds, "score": b.score} for b in event.bars]
     state.sync.bars = [ConfidenceBar(ref_seconds=b.ref_seconds, score=b.score) for b in event.bars]
 
@@ -105,7 +104,7 @@ async def _handle_step_event(event: StepEvent) -> None:
             "targetSongId": song_id,
             "phase": phase.value,
             "anchorRefSeconds": state.sync.anchor_ref_seconds,
-            "anchorWallclockMs": state.sync.anchor_wallclock_ms,
+            "wallclockMs": state.sync.wallclock_ms,
             "bars": bars,
             "bestCandidates": best_candidates,
         },

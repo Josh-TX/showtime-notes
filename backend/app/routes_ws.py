@@ -31,6 +31,8 @@ async def ws_endpoint(websocket: WebSocket) -> None:
     try:
         while True:
             message = await websocket.receive()
+            if message["type"] == "websocket.disconnect":
+                break
             if message.get("text") is not None:
                 await _handle_control_message(websocket, json.loads(message["text"]))
             elif message.get("bytes") is not None:

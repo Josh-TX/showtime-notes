@@ -28,7 +28,7 @@ AGREE_TOL_FRAMES = 3
 
 TRACK_WINDOW_SECONDS = 10.0
 TRACK_RECENCY_TIERS = ((0.25, 8.0), (0.25, 4.0))
-TRACK_RADIUS_SECONDS = 3.0  # also: the +/-3s confidence-bar window while synced
+TRACK_RADIUS_SECONDS = 4.0  # also: the +/-4s confidence-bar window while synced
 TRACK_MIN_SCORE = 0.30
 TRACK_ADJACENT_FRAMES = 2
 TRACK_ADJACENT_SWITCH_GAIN = 0.01
@@ -263,6 +263,14 @@ class LiveAligner:
             j = i_end + self._offset if pick == cur else j_lo + _analyze_peak(scores, pick)[0]
             self._offset = j - i_end
             self._low_streak = 0
+            if pick != cur:
+                # position moved; re-center the bars on it so they stay +/-radius around the position bar
+                new_center = int(round(i_end + self._offset))
+                lo = max(0, new_center - radius)
+                hi = min(self.n_ref - 1, new_center + radius)
+                if hi >= lo:
+                    new_scores = _window_scores(self.ref, self.pad, win, weights, lo, hi)
+                    bars = [ConfidenceBar(frame_center_seconds(lo + i), float(sc)) for i, sc in enumerate(new_scores)]
             return StepEvent("tracking", False, False, frame_center_seconds(i_end + self._offset), bars)
 
         self._low_streak += 1

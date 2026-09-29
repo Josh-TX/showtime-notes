@@ -46,7 +46,7 @@ export interface SyncState {
   targetSongId: string | null
   acquireMode: AcquireMode | null
   anchorRefSeconds: number | null
-  anchorWallclockMs: number | null
+  wallclockMs: number | null
   bars: ConfidenceBar[]
   bestCandidates: SyncCandidate[]
 }

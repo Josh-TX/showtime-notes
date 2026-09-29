@@ -5,9 +5,9 @@ import type { ConfidenceBar, Song, ShowInfo, SongSummary, SyncCandidate, SyncPha
 
 const HAS_AUDIO_STATUSES = new Set(['ready', 'syncing'])
 
-function anchorFromSync(sync: { anchorRefSeconds: number | null; anchorWallclockMs: number | null }) {
-  return sync.anchorRefSeconds !== null && sync.anchorWallclockMs !== null
-    ? { refSeconds: sync.anchorRefSeconds, wallclockMs: sync.anchorWallclockMs }
+function anchorFromSync(sync: { anchorRefSeconds: number | null; wallclockMs: number | null }) {
+  return sync.anchorRefSeconds !== null && sync.wallclockMs !== null
+    ? { refSeconds: sync.anchorRefSeconds, wallclockMs: sync.wallclockMs }
     : null
 }
 
@@ -23,6 +23,7 @@ export const useShowStore = defineStore('show', {
     recordingPeaks: [] as number[],
     positionAnchor: null as { refSeconds: number; wallclockMs: number } | null,
     confidenceBars: [] as ConfidenceBar[],
+    snapshotWallclockMs: null as number | null,
     bestCandidates: [] as SyncCandidate[],
     syncPhase: null as SyncPhase | null,
     loudness: 0,
@@ -51,11 +52,13 @@ export const useShowStore = defineStore('show', {
         if (payload.sync.targetSongId !== this.selectedSongId) {
           this.positionAnchor = null
           this.confidenceBars = []
+          this.snapshotWallclockMs = null
           this.bestCandidates = []
           this.syncPhase = null
         } else {
           this.positionAnchor = anchorFromSync(payload.sync)
           this.confidenceBars = payload.sync.bars
+          this.snapshotWallclockMs = payload.sync.wallclockMs
           this.bestCandidates = payload.sync.bestCandidates
           this.syncPhase = payload.sync.phase
         }
@@ -70,13 +73,14 @@ export const useShowStore = defineStore('show', {
           targetSongId: string
           phase: SyncPhase
           anchorRefSeconds: number | null
-          anchorWallclockMs: number | null
+          wallclockMs: number | null
           bars: ConfidenceBar[]
           bestCandidates: SyncCandidate[]
         }) => {
           if (payload.targetSongId !== this.selectedSongId) return
           this.positionAnchor = anchorFromSync(payload)
           this.confidenceBars = payload.bars
+          this.snapshotWallclockMs = payload.wallclockMs
           this.bestCandidates = payload.bestCandidates
           this.syncPhase = payload.phase
         },
@@ -116,11 +120,13 @@ export const useShowStore = defineStore('show', {
       if (this.show?.sync.targetSongId === id) {
         this.positionAnchor = anchorFromSync(this.show.sync)
         this.confidenceBars = this.show.sync.bars
+        this.snapshotWallclockMs = this.show.sync.wallclockMs
         this.bestCandidates = this.show.sync.bestCandidates
         this.syncPhase = this.show.sync.phase
       } else {
         this.positionAnchor = null
         this.confidenceBars = []
+        this.snapshotWallclockMs = null
         this.bestCandidates = []
         this.syncPhase = null
       }
@@ -142,6 +148,7 @@ export const useShowStore = defineStore('show', {
       this.recordingPeaks = []
       this.positionAnchor = null
       this.confidenceBars = []
+      this.snapshotWallclockMs = null
       this.bestCandidates = []
       this.syncPhase = null
     },

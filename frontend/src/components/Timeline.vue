@@ -57,6 +57,10 @@ const trackingBarsLeftPx = computed(() => {
   return startWidthPx.value + (trackingBarsOriginSeconds.value + drift) * PIXELS_PER_SECOND
 })
 
+// Acquiring bars are anchors too ("live-now is at this ref time"), so between snapshots they glide right
+// at 1s/s from the snapshot's wallclock, same as the tracking window.
+const acquiringBarsShiftPx = ref(0)
+
 function timeToLeft(seconds: number): number {
   return startWidthPx.value + seconds * PIXELS_PER_SECOND
 }
@@ -186,6 +190,8 @@ function tick(): void {
   } else {
     displayPosition.value = null
   }
+  acquiringBarsShiftPx.value =
+    store.snapshotWallclockMs === null ? 0 : ((Date.now() - store.snapshotWallclockMs) / 1000) * PIXELS_PER_SECOND
   if (autoScroll.value && displayPosition.value !== null && containerEl.value) {
     containerEl.value.scrollLeft = displayPosition.value * PIXELS_PER_SECOND
   }
@@ -262,7 +268,7 @@ onUnmounted(() => {
             v-else
             ref="acquiringBarsCanvas"
             class="confidence-overlay"
-            :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }"
+            :style="{ left: `${startWidthPx + acquiringBarsShiftPx}px`, width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }"
           />
           <div
             v-for="note in store.selectedSong.timelineNotes"
