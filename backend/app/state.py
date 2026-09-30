@@ -4,7 +4,7 @@ change."""
 from . import storage, ws_manager
 from .aligner import LiveAligner
 from .audio_buffer import RecordingBuffer, RollingBuffer
-from .models import ClientInfo, ListenerInfo, Song, SongStatus, SongSummary, ShowInfo, SyncState
+from .models import ClientInfo, ListenerInfo, RecentNote, Song, SongStatus, SongSummary, ShowInfo, SyncState
 
 
 class ServerState:
@@ -12,6 +12,8 @@ class ServerState:
         show = storage.load_show()
         self.song_order: list[str] = show["songOrder"]
         self.acquire_start_range_seconds: float = show["acquireStartRangeSeconds"]
+
+        self.recent_notes: list[RecentNote] = [RecentNote.model_validate(r) for r in show.get("recentNotes", [])]
 
         self.songs: dict[str, Song] = {}
         for song_id in list(self.song_order):
@@ -44,7 +46,11 @@ class ServerState:
 
     # -- persistence --
     def persist_show(self) -> None:
-        storage.save_show(self.song_order, self.acquire_start_range_seconds)
+        storage.save_show(
+            self.song_order,
+            self.acquire_start_range_seconds,
+            [r.model_dump() for r in self.recent_notes],
+        )
 
     # -- read helpers --
     def to_show_info(self) -> ShowInfo:
@@ -56,6 +62,7 @@ class ServerState:
             listener=ListenerInfo(device_name=self.listener_device_name),
             sync=self.sync,
             clients=[ClientInfo(device_name=n) for n in ws_manager.manager.device_names()],
+            recent_notes=self.recent_notes,
         )
 
     # -- mutation + broadcast --

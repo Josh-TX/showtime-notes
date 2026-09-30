@@ -4,10 +4,19 @@ export type SongStatus =
   | 'ready'
   | 'syncing'
 
+export type NoteColor = 'red' | 'blue' | 'orange' | 'yellow' | 'green' | 'pink' | 'brown' | 'white' | 'gray' | 'purple'
+
 export interface TimelineNote {
   id: string
   timeSeconds: number
+  y: number // px from timeline top to the note's top edge
   text: string
+  color: NoteColor
+}
+
+export interface RecentNote {
+  text: string
+  color: NoteColor
 }
 
 export interface Song {
@@ -64,6 +73,7 @@ export interface ShowInfo {
   listener: ListenerInfo
   sync: SyncState
   clients: ClientInfo[]
+  recentNotes: RecentNote[]
 }
 
 export interface ConfidenceBar {

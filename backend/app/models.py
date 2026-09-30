@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -19,10 +20,20 @@ class SongStatus(str, Enum):
     SYNCING = "syncing"  # this song is the sync target; see SyncState.phase for acquiring vs. tracking
 
 
+NoteColor = Literal["red", "blue", "orange", "yellow", "green", "pink", "brown", "white", "gray", "purple"]
+
+
 class TimelineNote(ApiModel):
     id: str
     time_seconds: float
+    y: float = 0  # px from the timeline top to the note's top edge
     text: str
+    color: NoteColor = "gray"
+
+
+class RecentNote(ApiModel):
+    text: str
+    color: NoteColor
 
 
 class Song(ApiModel):
@@ -104,3 +115,4 @@ class ShowInfo(ApiModel):
     listener: ListenerInfo
     sync: SyncState
     clients: list[ClientInfo]
+    recent_notes: list[RecentNote] = []

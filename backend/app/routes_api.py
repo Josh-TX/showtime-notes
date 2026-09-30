@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from . import recording, storage, sync_service
-from .models import ApiModel, AcquireMode, Song, TimelineNote
+from .models import AcquireMode, ApiModel, NoteColor, RecentNote, Song, TimelineNote
 from .state import state
 
 router = APIRouter(prefix="/api")
@@ -112,23 +112,50 @@ async def set_free_notes(song_id: str, body: FreeNotesBody):
     return song.model_dump(by_alias=True)
 
 
+MAX_NOTE_TEXT_LENGTH = 200
+MAX_RECENT_NOTES = 5
+
+
+def _clean_note_text(text: str) -> str:
+    text = text.strip()
+    if not text or len(text) > MAX_NOTE_TEXT_LENGTH:
+        raise HTTPException(400, f"note text must be 1-{MAX_NOTE_TEXT_LENGTH} characters")
+    return text
+
+
 class TimelineNoteBody(ApiModel):
     time_seconds: float
+    y: float
     text: str
+    color: NoteColor
 
 
 @router.post("/songs/{song_id}/timeline-notes")
 async def add_timeline_note(song_id: str, body: TimelineNoteBody):
     song = _song_or_404(song_id)
-    note = TimelineNote(id=uuid.uuid4().hex[:12], time_seconds=body.time_seconds, text=body.text)
+    text = _clean_note_text(body.text)
+    note = TimelineNote(
+        id=uuid.uuid4().hex[:12],
+        time_seconds=max(0.0, body.time_seconds),
+        y=max(0.0, body.y),
+        text=text,
+        color=body.color,
+    )
     song.timeline_notes.append(note)
     await state.save_and_broadcast_song(song)
+
+    recent = RecentNote(text=text, color=body.color)
+    state.recent_notes = ([recent] + [r for r in state.recent_notes if r != recent])[:MAX_RECENT_NOTES]
+    state.persist_show()
+    await state.broadcast_show()
     return note.model_dump(by_alias=True)
 
 
 class UpdateTimelineNoteBody(ApiModel):
     time_seconds: float | None = None
+    y: float | None = None
     text: str | None = None
+    color: NoteColor | None = None
 
 
 @router.put("/songs/{song_id}/timeline-notes/{note_id}")
@@ -138,9 +165,13 @@ async def update_timeline_note(song_id: str, note_id: str, body: UpdateTimelineN
     if note is None:
         raise HTTPException(404, "no such timeline note")
     if body.time_seconds is not None:
-        note.time_seconds = body.time_seconds
+        note.time_seconds = max(0.0, body.time_seconds)
+    if body.y is not None:
+        note.y = max(0.0, body.y)
     if body.text is not None:
-        note.text = body.text
+        note.text = _clean_note_text(body.text)
+    if body.color is not None:
+        note.color = body.color
     await state.save_and_broadcast_song(song)
     return note.model_dump(by_alias=True)
 

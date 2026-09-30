@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { api } from '../api'
 import { useShowStore } from '../store/show'
 import { clientSettings } from '../store/clientSettings'
+import TimelineNotes from './TimelineNotes.vue'
 import { PositionSmoother, type BarState } from './smoothing'
 import { PEAKS_PER_SECOND, computeTiles, drawWaveformTile, prepareTile } from './timelineDraw'
 
@@ -63,10 +63,6 @@ const trackingBarsLeftPx = computed(() => {
 // Acquiring bars are anchors too ("live-now is at this ref time"), so between snapshots they glide right
 // at 1s/s from the snapshot's wallclock, same as the tracking window.
 const acquiringBarsShiftPx = ref(0)
-
-function timeToLeft(seconds: number): number {
-  return startWidthPx.value + seconds * pixelsPerSecond.value
-}
 
 function hexToRgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -167,24 +163,16 @@ function tick(): void {
   rafId = requestAnimationFrame(tick)
 }
 
-function onTimelineDoubleClick(event: MouseEvent): void {
-  if (!store.selectedSong) return
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const x = event.clientX - rect.left - startWidthPx.value
-  const seconds = Math.max(0, x / pixelsPerSecond.value)
-  const text = window.prompt('Timeline note text:')
-  if (text) api.addTimelineNote(store.selectedSong.id, seconds, text)
-}
+const NOTE_HEIGHT = 32
 
-function editNote(noteId: string, currentText: string): void {
-  if (!store.selectedSong) return
-  const text = window.prompt('Edit note (empty to delete):', currentText)
-  if (text === null) return
-  if (text === '') {
-    api.deleteTimelineNote(store.selectedSong.id, noteId)
-  } else {
-    api.updateTimelineNote(store.selectedSong.id, noteId, { text })
-  }
+function onTimelineClick(event: MouseEvent): void {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const seconds = (event.clientX - rect.left - startWidthPx.value) / pixelsPerSecond.value
+  const y = event.clientY - rect.top
+  store.selectPosition(
+    Math.min(store.maxNoteSeconds, Math.max(0, seconds)),
+    Math.min(rect.height - NOTE_HEIGHT, Math.max(0, y)),
+  )
 }
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
@@ -224,7 +212,7 @@ onUnmounted(() => {
           v-if="store.selectedSong"
           class="timeline"
           :style="{ width: `${timelineWidthPx}px` }"
-          @dblclick="onTimelineDoubleClick"
+          @click="onTimelineClick"
         >
           <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
           <div class="wave-tiles" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }">
@@ -256,15 +244,7 @@ onUnmounted(() => {
               :style="{ left: `${tile.left}px`, width: `${tile.width}px`, height: `${totalHeightPx}px` }"
             />
           </div>
-          <div
-            v-for="note in store.selectedSong.timelineNotes"
-            :key="note.id"
-            class="timeline-note"
-            :style="{ left: `${timeToLeft(note.timeSeconds)}px` }"
-            @click="editNote(note.id, note.text)"
-          >
-            {{ note.text }}
-          </div>
+          <TimelineNotes :start-width-px="startWidthPx" :pixels-per-second="pixelsPerSecond" />
           <div
             v-for="(bar, i) in positionBars"
             :key="i"
@@ -334,21 +314,5 @@ onUnmounted(() => {
   width: 1px;
   background: #fff;
   z-index: 3;
-}
-.timeline-note {
-  position: absolute;
-  top: 4px;
-  transform: translateX(-50%);
-  background: #333;
-  border: 1px solid #555;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-  z-index: 4;
 }
 </style>

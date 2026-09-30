@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
+import TimelineNotes from './TimelineNotes.vue'
 import { computeTiles, drawLoudnessTile, prepareTile, stretchLoudness } from './timelineDraw'
 
 // Seconds visible across the container. Constant for now; may become a setting later.
@@ -67,7 +68,20 @@ watch(elapsedSeconds, (seconds, prev) => {
 })
 watch(followLive, scrollToLive)
 
-// Programmatic scrolls don't fire these, so any of them means the user took over.
+const NOTE_HEIGHT = 32
+
+function onTimelineClick(event: MouseEvent): void {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const seconds = (event.clientX - rect.left - startWidthPx.value) / pixelsPerSecond.value
+  const y = event.clientY - rect.top
+  store.selectPosition(
+    Math.min(elapsedSeconds.value, Math.max(0, seconds)),
+    Math.min(rect.height - NOTE_HEIGHT, Math.max(0, y)),
+  )
+}
+
+// Programmatic scrolls don't fire these, so any of them means the user took over. Pointer-down only counts on
+// the container itself (its scrollbar), so clicking the timeline to select a position/note keeps following.
 function stopFollowing(): void {
   followLive.value = false
 }
@@ -92,9 +106,9 @@ onUnmounted(() => resizeObserver?.disconnect())
       ref="containerEl"
       @wheel.passive="stopFollowing"
       @touchmove.passive="stopFollowing"
-      @pointerdown="stopFollowing"
+      @pointerdown.self="stopFollowing"
     >
-      <div class="timeline" :style="{ width: `${timelineWidthPx}px` }">
+      <div class="timeline" :style="{ width: `${timelineWidthPx}px` }" @click="onTimelineClick">
         <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
         <div class="wave-tiles" :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px` }">
           <canvas
@@ -105,6 +119,7 @@ onUnmounted(() => resizeObserver?.disconnect())
             :style="{ left: `${tile.left}px`, width: `${tile.width}px`, height: `${viewportHeightPx}px` }"
           />
         </div>
+        <TimelineNotes :start-width-px="startWidthPx" :pixels-per-second="pixelsPerSecond" />
       </div>
     </div>
   </div>

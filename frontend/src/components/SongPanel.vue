@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
 import SyncArrows from './SyncArrows.vue'
+import NotesPanel from './NotesPanel.vue'
 
 const LIVE_PEAKS_PER_SECOND = 20
 
@@ -131,6 +132,7 @@ async function toggleSync(): Promise<void> {
     </p>
     <p v-if="store.selectedSong.processingError" class="error">{{ store.selectedSong.processingError }}</p>
     <textarea v-model="freeNotes" placeholder="Free notes for this song…" @input="onInput" />
+    <NotesPanel v-if="['recording', 'ready', 'syncing'].includes(store.selectedSong.status)" />
   </div>
   <div class="song-panel empty" v-else>Select a song</div>
 </template>
@@ -191,13 +193,14 @@ h2 {
   border-radius: 1rem;
 }
 textarea {
-  flex: 1;
+  flex: none;
+  height: 64px;
+  margin-bottom: 0.5rem;
   resize: none;
   background: #1c1c1c;
   color: inherit;
   border: 1px solid #333;
   padding: 0.5rem;
-  min-height: 120px;
 }
 .error {
   color: #e05050;
