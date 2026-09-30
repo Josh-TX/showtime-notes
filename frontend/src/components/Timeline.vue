@@ -5,11 +5,15 @@ import { useShowStore } from '../store/show'
 import { clientSettings } from '../store/clientSettings'
 import { PositionSmoother, type BarState } from './smoothing'
 
-const PEAKS_PER_SECOND = 20
+const PEAKS_PER_SECOND = 30
 const WAVEFORM_LANE_HEIGHT = 120
 const NORMAL_BEAT_ALPHA = 0.08
 const DOWNBEAT_ALPHA = 0.25
-const WAVEFORM_ALPHA = 0.5
+// opaque equivalents of #4a9eff / #7a7a7a at 50% over the #050506 background
+const VOCALS_COLOR = '#285283'
+const NOVOCALS_COLOR = '#404040'
+// bars drawn slightly wider than their spacing so neighbors overlap (opaque, so no gaps or alpha buildup)
+const WAVEFORM_BAR_WIDTH_SCALE = 1.3
 const CONFIDENCE_BAR_ALPHA = 0.7
 const CONFIDENCE_BAR_BG_ALPHA = 0.03
 const CONFIDENCE_BAR_MAX_HEIGHT = 120
@@ -124,13 +128,11 @@ function drawWaveform(): void {
     for (let i = 0; i < peaks.length; i++) {
       const h = Math.min(1, peaks[i]) * half
       const x = i * step
-      ctx.fillRect(x, center - h, Math.max(1, step), Math.max(1, h * 2))
+      ctx.fillRect(x, center - h, Math.max(1, step * WAVEFORM_BAR_WIDTH_SCALE), Math.max(1, h * 2))
     }
   }
-  ctx.globalAlpha = WAVEFORM_ALPHA
-  drawPeaks(waveform.peaks.vocals, vocalsCenter, '#4a9eff')
-  drawPeaks(waveform.peaks.novocals, novocalsCenter, '#7a7a7a')
-  ctx.globalAlpha = 1
+  drawPeaks(waveform.peaks.vocals, vocalsCenter, VOCALS_COLOR)
+  drawPeaks(waveform.peaks.novocals, novocalsCenter, NOVOCALS_COLOR)
 }
 
 // Acquiring-phase confidence bars: no lock yet, so they span the whole scan range and sit at fixed absolute

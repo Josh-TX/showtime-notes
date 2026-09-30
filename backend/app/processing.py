@@ -16,7 +16,13 @@ import numpy as np
 from . import chroma, storage
 from .config import CAPTURE_SR, STORAGE_BITRATE_KBPS
 
-PEAKS_PER_SECOND = 20
+PEAKS_PER_SECOND = 30
+NORMALIZE_PERCENTILE = 98
+# Normalization gain ramps (log-space) with the percentile RMS (linear): at/below NO_SCALE_BELOW (~-40 dBFS) no
+# scaling, so quiet stems (e.g. demucs bleed on instrumental songs) stay flat; at/above FULL_SCALE_ABOVE (~-26 dBFS)
+# full scaling so the percentile reaches 1.0.
+NO_SCALE_BELOW = 0.01
+FULL_SCALE_ABOVE = 0.05
 
 ProgressCB = Callable[[float], None]
 
@@ -58,8 +64,14 @@ def _detect_beats(wav_path: Path) -> tuple[list[float], list[float]]:
 def _peaks(mono: np.ndarray, sr: int) -> list[float]:
     bucket = max(1, int(sr / PEAKS_PER_SECOND))
     n_buckets = max(1, len(mono) // bucket)
-    trimmed = np.abs(mono[: n_buckets * bucket]).reshape(n_buckets, bucket)
-    return [round(float(v), 4) for v in trimmed.max(axis=1)]
+    trimmed = mono[: n_buckets * bucket].reshape(n_buckets, bucket)
+    rms = np.sqrt(np.mean(np.square(trimmed), axis=1))
+    percentile = float(np.percentile(rms, NORMALIZE_PERCENTILE))
+    if percentile > 0:
+        ramp = (percentile - NO_SCALE_BELOW) / (FULL_SCALE_ABOVE - NO_SCALE_BELOW)
+        ramp = min(max(ramp, 0.0), 1.0)
+        rms = np.clip(rms * (1.0 / percentile) ** ramp, 0.0, 1.0)
+    return [round(float(v), 4) for v in rms]
 
 
 def _transcode_aac(src_wav: Path, dst_aac: Path) -> None:
