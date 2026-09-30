@@ -2,6 +2,7 @@
 import { useShowStore } from '../store/show'
 import NewRecordingButton from './NewRecordingButton.vue'
 import SyncArrows from './SyncArrows.vue'
+import ProcessingGears from './ProcessingGears.vue'
 import type { SongSummary } from '../types'
 
 const store = useShowStore()
@@ -27,7 +28,7 @@ function targetSyncColor(): string {
       >
         <span class="name">{{ song.name }}</span>
         <span v-if="song.status === 'recording'" class="rec-dot" />
-        <span v-else-if="song.status === 'processing'" class="spinner" />
+        <ProcessingGears v-else-if="song.status === 'processing'" :size="16" />
         <SyncArrows v-else-if="song.id === store.show?.sync.targetSongId" :color="targetSyncColor()" :size="16" />
       </div>
     </div>
@@ -79,20 +80,6 @@ function targetSyncColor(): string {
 @keyframes pulse {
   50% {
     opacity: 0.3;
-  }
-}
-.spinner {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid #444;
-  border-top-color: #999;
-  display: inline-block;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
   }
 }
 </style>

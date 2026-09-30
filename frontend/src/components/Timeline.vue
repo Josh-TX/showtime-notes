@@ -4,16 +4,8 @@ import { api } from '../api'
 import { useShowStore } from '../store/show'
 import { clientSettings } from '../store/clientSettings'
 import { PositionSmoother, type BarState } from './smoothing'
+import { PEAKS_PER_SECOND, computeTiles, drawWaveformTile, prepareTile } from './timelineDraw'
 
-const PEAKS_PER_SECOND = 30
-const WAVEFORM_LANE_HEIGHT = 120
-const NORMAL_BEAT_ALPHA = 0.08
-const DOWNBEAT_ALPHA = 0.25
-// opaque equivalents of #4a9eff / #7a7a7a at 50% over the #050506 background
-const VOCALS_COLOR = '#285283'
-const NOVOCALS_COLOR = '#404040'
-// bars drawn slightly wider than their spacing so neighbors overlap (opaque, so no gaps or alpha buildup)
-const WAVEFORM_BAR_WIDTH_SCALE = 1.3
 const CONFIDENCE_BAR_ALPHA = 0.7
 const CONFIDENCE_BAR_BG_ALPHA = 0.03
 const CONFIDENCE_BAR_MAX_HEIGHT = 120
@@ -25,8 +17,8 @@ const CANDIDATE_COLORS = ['#00e5ff', '#ff00ff', '#ff9800']
 const store = useShowStore()
 
 const containerEl = ref<HTMLDivElement | null>(null)
-const waveCanvas = ref<HTMLCanvasElement | null>(null)
-const acquiringBarsCanvas = ref<HTMLCanvasElement | null>(null)
+const waveTileCanvases: (HTMLCanvasElement | null)[] = []
+const acquiringTileCanvases: (HTMLCanvasElement | null)[] = []
 const trackingBarsCanvas = ref<HTMLCanvasElement | null>(null)
 
 const viewportWidthPx = ref(400)
@@ -51,6 +43,7 @@ const startWidthPx = computed(() => Math.round(viewportWidthPx.value * barOffset
 const endWidthPx = computed(() => Math.round(viewportWidthPx.value * (1 - barOffsetFraction.value)))
 const timelineWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value + endWidthPx.value)
 const totalHeightPx = computed(() => viewportHeightPx.value)
+const tiles = computed(() => computeTiles(canvasWidthPx.value))
 
 function positionToLeft(position: number): number {
   return startWidthPx.value + position * pixelsPerSecond.value
@@ -94,67 +87,32 @@ function drawConfidenceBar(ctx: CanvasRenderingContext2D, x: number, width: numb
 }
 
 function drawWaveform(): void {
-  const canvas = waveCanvas.value
   const waveform = store.waveform
-  if (!canvas || !waveform) return
-  canvas.width = canvasWidthPx.value
-  canvas.height = totalHeightPx.value
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  // beats drawn first, full height, so the opaque waveform peaks paint over them
-  const downbeatSet = new Set(waveform.downbeats)
-  ctx.globalAlpha = NORMAL_BEAT_ALPHA
-  ctx.fillStyle = '#e0c33e'
-  for (const beat of waveform.beats) {
-    if (downbeatSet.has(beat)) continue
-    const x = Math.round(beat * pixelsPerSecond.value)
-    ctx.fillRect(x, 0, 1, canvas.height)
+  if (!waveform) return
+  for (const tile of tiles.value) {
+    const ctx = prepareTile(waveTileCanvases[tile.index], tile, totalHeightPx.value)
+    if (ctx) drawWaveformTile(ctx, tile, totalHeightPx.value, pixelsPerSecond.value, waveform)
   }
-  ctx.globalAlpha = DOWNBEAT_ALPHA
-  for (const beat of waveform.downbeats) {
-    const x = Math.round(beat * pixelsPerSecond.value)
-    ctx.fillRect(x, 0, 1, canvas.height)
-  }
-  ctx.globalAlpha = 1
-
-  const half = WAVEFORM_LANE_HEIGHT / 2
-  const vocalsCenter = half
-  const novocalsCenter = WAVEFORM_LANE_HEIGHT + half
-  const drawPeaks = (peaks: number[], center: number, color: string) => {
-    ctx.fillStyle = color
-    const step = barStepPx.value
-    for (let i = 0; i < peaks.length; i++) {
-      const h = Math.min(1, peaks[i]) * half
-      const x = i * step
-      ctx.fillRect(x, center - h, Math.max(1, step * WAVEFORM_BAR_WIDTH_SCALE), Math.max(1, h * 2))
-    }
-  }
-  drawPeaks(waveform.peaks.vocals, vocalsCenter, VOCALS_COLOR)
-  drawPeaks(waveform.peaks.novocals, novocalsCenter, NOVOCALS_COLOR)
 }
 
 // Acquiring-phase confidence bars: no lock yet, so they span the whole scan range and sit at fixed absolute
 // ref-time coordinates, same as the waveform - there's no "current position" for them to glide with.
 function drawAcquiringConfidenceBars(): void {
-  const canvas = acquiringBarsCanvas.value
-  if (!canvas) return
-  canvas.width = canvasWidthPx.value
-  canvas.height = totalHeightPx.value
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  if (store.syncPhase !== 'acquiring' || !store.confidenceBars.length) return
-
+  const active = store.syncPhase === 'acquiring' && store.confidenceBars.length > 0
   const candidateColorByBarIndex = new Map(store.bestCandidates.map((c, rank) => [c.barIndex, CANDIDATE_COLORS[rank]]))
-
-  const height = canvas.height
-  for (let i = 0; i < store.confidenceBars.length; i++) {
-    const bar = store.confidenceBars[i]
-    const x = bar.refSeconds * pixelsPerSecond.value
-    const color = candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR
-    drawConfidenceBar(ctx, x, Math.max(1, barStepPx.value), height, bar.score, color)
+  const height = totalHeightPx.value
+  const barWidth = Math.max(1, barStepPx.value)
+  for (const tile of tiles.value) {
+    const ctx = prepareTile(acquiringTileCanvases[tile.index], tile, totalHeightPx.value)
+    if (!ctx || !active) continue
+    const right = tile.left + tile.width
+    for (let i = 0; i < store.confidenceBars.length; i++) {
+      const bar = store.confidenceBars[i]
+      const x = bar.refSeconds * pixelsPerSecond.value
+      if (x + barWidth < tile.left || x >= right) continue
+      const color = candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR
+      drawConfidenceBar(ctx, x, barWidth, height, bar.score, color)
+    }
   }
 }
 
@@ -269,7 +227,15 @@ onUnmounted(() => {
           @dblclick="onTimelineDoubleClick"
         >
           <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
-          <canvas ref="waveCanvas" class="wave-canvas" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }" />
+          <div class="wave-tiles" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }">
+            <canvas
+              v-for="tile in tiles"
+              :key="tile.index"
+              :ref="(el) => (waveTileCanvases[tile.index] = el as HTMLCanvasElement | null)"
+              class="tile-canvas"
+              :style="{ left: `${tile.left}px`, width: `${tile.width}px`, height: `${totalHeightPx}px` }"
+            />
+          </div>
           <div class="end-area" :style="{ width: `${endWidthPx}px` }"></div>
           <canvas
             v-if="store.syncPhase === 'tracking'"
@@ -277,12 +243,19 @@ onUnmounted(() => {
             class="confidence-overlay"
             :style="{ left: `${trackingBarsLeftPx ?? startWidthPx}px`, width: `${trackingBarsWidthPx}px`, height: `${totalHeightPx}px` }"
           />
-          <canvas
+          <div
             v-else
-            ref="acquiringBarsCanvas"
             class="confidence-overlay"
             :style="{ left: `${startWidthPx + acquiringBarsShiftPx}px`, width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }"
-          />
+          >
+            <canvas
+              v-for="tile in tiles"
+              :key="tile.index"
+              :ref="(el) => (acquiringTileCanvases[tile.index] = el as HTMLCanvasElement | null)"
+              class="tile-canvas"
+              :style="{ left: `${tile.left}px`, width: `${tile.width}px`, height: `${totalHeightPx}px` }"
+            />
+          </div>
           <div
             v-for="note in store.selectedSong.timelineNotes"
             :key="note.id"
@@ -339,8 +312,13 @@ onUnmounted(() => {
   height: 100%;
   background: repeating-linear-gradient(45deg, #050506 0 8px, #101114 8px 16px);
 }
-.wave-canvas {
+.wave-tiles {
   flex: none;
+  position: relative;
+}
+.tile-canvas {
+  position: absolute;
+  top: 0;
   display: block;
 }
 .confidence-overlay {

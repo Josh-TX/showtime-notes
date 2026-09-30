@@ -1,24 +1,29 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
+import { computeTiles, drawLoudnessTile, prepareTile, stretchLoudness } from './timelineDraw'
 
-const PIXELS_PER_SECOND = 60
-const LIVE_PEAKS_PER_SECOND = 20
-const TIMELINE_HEIGHT = 160
-const LIVE_ALIGN_FRACTION = 0.75
+// Seconds visible across the container. Constant for now; may become a setting later.
+const TIMELINE_WIDTH_SECONDS = 30
+const LIVE_PEAKS_PER_SECOND = 50
 
 const store = useShowStore()
 
 const containerEl = ref<HTMLDivElement | null>(null)
-const waveCanvas = ref<HTMLCanvasElement | null>(null)
+const displayPeaks: number[] = [] // store.recordingPeaks after contrast stretching
+const tileCanvases: (HTMLCanvasElement | null)[] = []
 
-const leftPaddingPx = ref(400)
-const autoScroll = ref(true)
+const viewportWidthPx = ref(400)
+const viewportHeightPx = ref(200)
+const followLive = ref(true)
 
+const pixelsPerSecond = computed(() => viewportWidthPx.value / TIMELINE_WIDTH_SECONDS)
 const elapsedSeconds = computed(() => store.recordingPeaks.length / LIVE_PEAKS_PER_SECOND)
-const timelineWidthPx = computed(() => Math.max(1, elapsedSeconds.value * PIXELS_PER_SECOND))
-const timelineTotalWidthPx = computed(() => leftPaddingPx.value + timelineWidthPx.value)
-const liveEdgeLeftPx = computed(() => leftPaddingPx.value + timelineWidthPx.value)
+// The live edge sits at the right edge of the container (100% offset), so the left padding is a full viewport.
+const startWidthPx = computed(() => viewportWidthPx.value)
+const canvasWidthPx = computed(() => Math.max(1, elapsedSeconds.value * pixelsPerSecond.value))
+const timelineWidthPx = computed(() => startWidthPx.value + canvasWidthPx.value)
+const tiles = computed(() => computeTiles(canvasWidthPx.value))
 
 function formatElapsed(seconds: number): string {
   const total = Math.floor(seconds)
@@ -27,52 +32,50 @@ function formatElapsed(seconds: number): string {
   return `${mm}:${ss.toString().padStart(2, '0')}`
 }
 
-function resizePadding(): void {
-  leftPaddingPx.value = (containerEl.value?.clientWidth ?? 400) * LIVE_ALIGN_FRACTION
-  drawWaveform()
-  scrollToLive()
-}
-
-function drawWaveform(): void {
-  const canvas = waveCanvas.value
-  if (!canvas) return
-  canvas.width = timelineWidthPx.value
-  canvas.height = TIMELINE_HEIGHT
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-  const mid = TIMELINE_HEIGHT / 2
-  const step = PIXELS_PER_SECOND / LIVE_PEAKS_PER_SECOND
-  ctx.fillStyle = '#4a9eff'
-  const peaks = store.recordingPeaks
-  for (let i = 0; i < peaks.length; i++) {
-    const h = Math.min(1, peaks[i]) * mid
-    const x = i * step
-    ctx.fillRect(x, mid - h, Math.max(1, step), h * 2)
+// Redraws every tile that reaches past `fromSeconds`; tiles entirely before it can't have changed.
+function draw(fromSeconds = 0): void {
+  const fromPx = fromSeconds * pixelsPerSecond.value
+  const height = viewportHeightPx.value
+  stretchLoudness(store.recordingPeaks, displayPeaks, LIVE_PEAKS_PER_SECOND)
+  for (const tile of tiles.value) {
+    if (tile.left + tile.width < fromPx) continue
+    const ctx = prepareTile(tileCanvases[tile.index], tile, height)
+    if (!ctx) continue
+    drawLoudnessTile(ctx, tile, pixelsPerSecond.value, displayPeaks, LIVE_PEAKS_PER_SECOND)
   }
-
-  ctx.strokeStyle = '#333'
-  ctx.beginPath()
-  ctx.moveTo(0, mid)
-  ctx.lineTo(canvas.width, mid)
-  ctx.stroke()
 }
 
 function scrollToLive(): void {
-  if (!autoScroll.value || !containerEl.value) return
-  containerEl.value.scrollLeft = liveEdgeLeftPx.value - containerEl.value.clientWidth * LIVE_ALIGN_FRACTION
+  if (followLive.value && containerEl.value) containerEl.value.scrollLeft = containerEl.value.scrollWidth
 }
 
-watch(() => store.recordingPeaks.length, () => {
-  nextTick(drawWaveform)
-  scrollToLive()
+function refreshLayout(): void {
+  viewportWidthPx.value = containerEl.value?.clientWidth ?? 400
+  viewportHeightPx.value = containerEl.value?.clientHeight ?? 200
+  nextTick(() => {
+    draw()
+    scrollToLive()
+  })
+}
+
+// The trace only grows at the live edge (a little overlap for the last bar's width).
+watch(elapsedSeconds, (seconds, prev) => {
+  nextTick(() => {
+    draw(Math.min(seconds, prev) - 1)
+    scrollToLive()
+  })
 })
+watch(followLive, scrollToLive)
+
+// Programmatic scrolls don't fire these, so any of them means the user took over.
+function stopFollowing(): void {
+  followLive.value = false
+}
 
 let resizeObserver: ResizeObserver | undefined
 onMounted(() => {
-  resizePadding()
-  resizeObserver = new ResizeObserver(resizePadding)
+  refreshLayout()
+  resizeObserver = new ResizeObserver(refreshLayout)
   if (containerEl.value) resizeObserver.observe(containerEl.value)
 })
 onUnmounted(() => resizeObserver?.disconnect())
@@ -81,13 +84,27 @@ onUnmounted(() => resizeObserver?.disconnect())
 <template>
   <div class="timeline-wrap">
     <div class="timeline-toolbar">
-      <label><input type="checkbox" v-model="autoScroll" /> follow live</label>
+      <label><input type="checkbox" v-model="followLive" /> follow live</label>
       <span class="elapsed">{{ formatElapsed(elapsedSeconds) }}</span>
     </div>
-    <div class="timeline-container" ref="containerEl">
-      <div class="timeline" :style="{ width: `${timelineTotalWidthPx}px`, height: `${TIMELINE_HEIGHT}px` }">
-        <canvas ref="waveCanvas" class="wave-canvas" :style="{ left: `${leftPaddingPx}px` }" />
-        <div class="live-edge" :style="{ left: `${liveEdgeLeftPx}px` }" />
+    <div
+      class="timeline-container"
+      ref="containerEl"
+      @wheel.passive="stopFollowing"
+      @touchmove.passive="stopFollowing"
+      @pointerdown="stopFollowing"
+    >
+      <div class="timeline" :style="{ width: `${timelineWidthPx}px` }">
+        <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
+        <div class="wave-tiles" :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px` }">
+          <canvas
+            v-for="tile in tiles"
+            :key="tile.index"
+            :ref="(el) => (tileCanvases[tile.index] = el as HTMLCanvasElement | null)"
+            class="tile-canvas"
+            :style="{ left: `${tile.left}px`, width: `${tile.width}px`, height: `${viewportHeightPx}px` }"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -119,16 +136,24 @@ onUnmounted(() => resizeObserver?.disconnect())
 }
 .timeline {
   position: relative;
+  height: 100%;
+  background: #050506;
 }
-.wave-canvas {
+.start-area {
   position: absolute;
   top: 0;
+  left: 0;
+  height: 100%;
+  background: repeating-linear-gradient(45deg, #050506 0 8px, #101114 8px 16px);
 }
-.live-edge {
+.wave-tiles {
   position: absolute;
   top: 0;
-  bottom: 0;
-  width: 2px;
-  background: #e04040;
+  height: 100%;
+}
+.tile-canvas {
+  position: absolute;
+  top: 0;
+  display: block;
 }
 </style>
