@@ -31,7 +31,7 @@ TRACK_RECENCY_TIERS = ((0.25, 8.0), (0.25, 4.0))
 TRACK_RADIUS_SECONDS = 4.0  # also: the +/-4s confidence-bar window while synced
 TRACK_MIN_SCORE = 0.30
 TRACK_ADJACENT_FRAMES = 2
-TRACK_ADJACENT_SWITCH_GAIN = 0.01
+TRACK_ADJACENT_SWITCH_GAIN = 0.008
 TRACK_JUMP_SWITCH_GAIN = 0.15
 TRACK_FAIL_STREAK = 6  # consecutive low-confidence updates before dropping back to acquiring
 
@@ -197,14 +197,15 @@ class LiveAligner:
         return {"ok": ok, "j": j_lo + j_frac, "scores": scores, "j_lo": j_lo}
 
     def _acquire_step(self, i_end: int) -> StepEvent:
+        abs_end = i_end + self._base  # offsets are absolute: the ring trims, so ring-relative indices don't advance
         scan = self._scan_acquisition(i_end)
         passing = scan if scan is not None and scan["ok"] else None
         if passing is not None:
-            offset = passing["j"] - i_end
+            offset = passing["j"] - abs_end
             if self._run and abs(offset - self._run[-1][1]) <= AGREE_TOL_FRAMES:
-                self._run.append((i_end, offset))
+                self._run.append((abs_end, offset))
             else:
-                self._run = [(i_end, offset)]
+                self._run = [(abs_end, offset)]
         else:
             self._run = []
 
@@ -217,24 +218,25 @@ class LiveAligner:
             ]
             candidates = _best_candidates(scan["scores"])
 
-        if passing is not None and i_end - self._run[0][0] >= frames(LOCK_AGREE_SECONDS):
+        if passing is not None and abs_end - self._run[0][0] >= frames(LOCK_AGREE_SECONDS):
             self.mode = "tracking"
             self._offset = self._run[-1][1]
             self._low_streak = 0
             # bars are still shaped for the acquiring scan range; sending them here would flash
             # mismatched bars in the tracking color, so send none until _track_step computes real ones
-            return StepEvent("tracking", True, False, frame_center_seconds(i_end + self._offset), [])
+            return StepEvent("tracking", True, False, frame_center_seconds(abs_end + self._offset), [])
         return StepEvent("acquiring", False, False, None, bars, candidates)
 
     def _track_step(self, i_end: int) -> StepEvent:
+        abs_end = i_end + self._base
         w = min(frames(TRACK_WINDOW_SECONDS), i_end + 1)
         radius = frames(TRACK_RADIUS_SECONDS)
-        center = int(round(i_end + self._offset))
+        center = int(round(abs_end + self._offset))
         j_lo = max(0, center - radius)
         j_hi = min(self.n_ref - 1, center + radius)
         if j_hi < j_lo:
             # ran off the end of the reference song; stay put and keep reporting the last known position
-            return StepEvent("tracking", False, False, frame_center_seconds(i_end + self._offset), [])
+            return StepEvent("tracking", False, False, frame_center_seconds(abs_end + self._offset), [])
 
         win = self._live[i_end - w + 1 : i_end + 1]
         weights = _recency_weights(w, TRACK_RECENCY_TIERS)
@@ -260,18 +262,18 @@ class LiveAligner:
 
         ok = best >= TRACK_MIN_SCORE
         if ok:
-            j = i_end + self._offset if pick == cur else j_lo + _analyze_peak(scores, pick)[0]
-            self._offset = j - i_end
+            j = abs_end + self._offset if pick == cur else j_lo + _analyze_peak(scores, pick)[0]
+            self._offset = j - abs_end
             self._low_streak = 0
             if pick != cur:
                 # position moved; re-center the bars on it so they stay +/-radius around the position bar
-                new_center = int(round(i_end + self._offset))
+                new_center = int(round(abs_end + self._offset))
                 lo = max(0, new_center - radius)
                 hi = min(self.n_ref - 1, new_center + radius)
                 if hi >= lo:
                     new_scores = _window_scores(self.ref, self.pad, win, weights, lo, hi)
                     bars = [ConfidenceBar(frame_center_seconds(lo + i), float(sc)) for i, sc in enumerate(new_scores)]
-            return StepEvent("tracking", False, False, frame_center_seconds(i_end + self._offset), bars)
+            return StepEvent("tracking", False, False, frame_center_seconds(abs_end + self._offset), bars)
 
         self._low_streak += 1
         if self._low_streak >= TRACK_FAIL_STREAK:
@@ -280,7 +282,7 @@ class LiveAligner:
             self._low_streak = 0
             # bars are still shaped for the tracking window, not the acquiring scan range; same reasoning as above
             return StepEvent("acquiring", False, True, None, [])
-        return StepEvent("tracking", False, False, frame_center_seconds(i_end + self._offset), bars)
+        return StepEvent("tracking", False, False, frame_center_seconds(abs_end + self._offset), bars)
 
     def _step(self, i_end_rel: int) -> StepEvent:
         if self.mode == "acquiring":

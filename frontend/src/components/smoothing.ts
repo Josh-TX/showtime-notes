@@ -1,8 +1,8 @@
 // Tunables for position-bar / auto-scroll smoothing. Change here.
 export const SCROLL_BLEND_MS = 500 // auto-scroll (re)engaging: glide from current scroll to the position
-export const SMALL_MOVE_MS = 200 // new anchor shifts position by < FADE_THRESHOLD_SECONDS: glide bar there
+export const SMALL_MOVE_MS = 400 // new anchor shifts position by < FADE_THRESHOLD_SECONDS: glide bar there
 export const FADE_MS = 500 // new anchor shifts position by >= threshold: crossfade old bar -> new bar
-export const FADE_THRESHOLD_SECONDS = 0.1
+export const FADE_THRESHOLD_SECONDS = 0.16
 
 // smoothstep; swap this to change every tween's curve
 export function ease(t: number): number {
