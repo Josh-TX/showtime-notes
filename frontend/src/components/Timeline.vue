@@ -49,7 +49,9 @@ function positionToLeft(position: number): number {
   return startWidthPx.value + position * pixelsPerSecond.value
 }
 
-const barStepPx = computed(() => pixelsPerSecond.value / PEAKS_PER_SECOND)
+// Confidence bars are one per chroma frame (backend chroma.py HOP/SR), not per waveform peak
+const CHROMA_FRAME_SECONDS = 1102 / 22050
+const barStepPx = computed(() => pixelsPerSecond.value * CHROMA_FRAME_SECONDS)
 const trackingBarsWidthPx = computed(() => Math.max(1, store.confidenceBars.length * barStepPx.value))
 // Mirrors positionLeftPx's anchor extrapolation, offset by where the drawn window's first bar sits relative to
 // the anchor - so the window glides in lockstep with the position bar instead of jumping on every new snapshot.
@@ -57,7 +59,8 @@ const trackingBarsLeftPx = computed(() => {
   const anchor = store.positionAnchor
   if (anchor === null || trackingBarsOriginSeconds.value === null || displayPosition.value === null) return null
   const drift = displayPosition.value - anchor.refSeconds
-  return startWidthPx.value + (trackingBarsOriginSeconds.value + drift) * pixelsPerSecond.value
+  // refSeconds is the frame center, so the first bar's left edge is half a step earlier
+  return startWidthPx.value + (trackingBarsOriginSeconds.value + drift) * pixelsPerSecond.value - barStepPx.value / 2
 })
 
 // Acquiring bars are anchors too ("live-now is at this ref time"), so between snapshots they glide right
@@ -104,7 +107,7 @@ function drawAcquiringConfidenceBars(): void {
     const right = tile.left + tile.width
     for (let i = 0; i < store.confidenceBars.length; i++) {
       const bar = store.confidenceBars[i]
-      const x = bar.refSeconds * pixelsPerSecond.value
+      const x = bar.refSeconds * pixelsPerSecond.value - barWidth / 2
       if (x + barWidth < tile.left || x >= right) continue
       const color = candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR
       drawConfidenceBar(ctx, x, barWidth, height, bar.score, color)
