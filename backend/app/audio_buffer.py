@@ -1,5 +1,7 @@
 """In-memory audio buffers for the listener's live PCM stream. Both operate on mono int16 samples at
 config.CAPTURE_SR; audio never touches disk until a recording is stopped and named."""
+import time
+
 import numpy as np
 
 from .config import CAPTURE_SR, RECORDING_MAX_SECONDS, ROLLING_BUFFER_SECONDS
@@ -19,20 +21,49 @@ def level_from_samples(samples_int16: np.ndarray) -> float:
 
 
 class RollingBuffer:
-    """Always-on ~1s ring of the most recent live audio: recording pre-roll + (indirectly, via whatever consumes
-    it live) the chroma stream's lookback. Never grows past its cap."""
+    """Always-on ring of the most recent live audio (ROLLING_BUFFER_SECONDS): recording pre-roll. Never grows past
+    its cap. Tracks the wall-clock time (ms) the newest sample arrived so callers can address audio by wall clock."""
 
     def __init__(self, seconds: float = ROLLING_BUFFER_SECONDS) -> None:
         self._capacity = int(seconds * CAPTURE_SR)
         self._buf = np.zeros(0, dtype=np.int16)
+        self._end_ts_ms = 0.0
+        self._total_samples = 0
 
     def push(self, samples: np.ndarray) -> None:
         self._buf = np.concatenate([self._buf, samples])
         if len(self._buf) > self._capacity:
             self._buf = self._buf[-self._capacity :]
+        self._end_ts_ms = time.time() * 1000.0
+        self._total_samples += len(samples)
+
+    @property
+    def end_ts_ms(self) -> float:
+        return self._end_ts_ms
+
+    @property
+    def end_peak_index(self) -> int:
+        """Absolute index of the newest peaks() window, so clients can line up windows across messages."""
+        return self._total_samples // _PEAK_WINDOW_SAMPLES
 
     def snapshot(self) -> np.ndarray:
         return self._buf.copy()
+
+    def snapshot_from(self, start_ts_ms: float) -> np.ndarray:
+        """Audio from the given wall-clock time to the newest sample; clamped to what's buffered."""
+        n = len(self._buf)
+        back = int(round((self._end_ts_ms - start_ts_ms) / 1000.0 * CAPTURE_SR))
+        return self._buf[n - max(0, min(n, back)) :].copy()
+
+    def peaks(self, newest_samples: int | None = None) -> list[float]:
+        """Loudness levels (0-1) of consecutive 1/LIVE_PEAKS_PER_SECOND windows, aligned so the last window ends at
+        end_ts_ms. With newest_samples, only the windows covering that many of the newest samples."""
+        limit = len(self._buf) if newest_samples is None else min(len(self._buf), newest_samples)
+        n = max(limit, 0) // _PEAK_WINDOW_SAMPLES
+        if n == 0:
+            return []
+        tail = self._buf[len(self._buf) - n * _PEAK_WINDOW_SAMPLES :]
+        return [level_from_samples(w) for w in tail.reshape(n, _PEAK_WINDOW_SAMPLES)]
 
 
 class RecordingBuffer:

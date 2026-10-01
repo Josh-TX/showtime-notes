@@ -11,6 +11,7 @@ class Client:
     device_name: str
     ws: WebSocket
     wants_live_audio: bool = False  # opt-in "play live audio" subscription
+    wants_recording_preview: bool = False  # opt-in, only while the new-recording modal is open
 
 
 class WsManager:
@@ -32,6 +33,26 @@ class WsManager:
     def set_live_audio_wanted(self, ws: WebSocket, wanted: bool) -> None:
         if ws in self.clients:
             self.clients[ws].wants_live_audio = wanted
+
+    def set_recording_preview_wanted(self, ws: WebSocket, wanted: bool) -> None:
+        if ws in self.clients:
+            self.clients[ws].wants_recording_preview = wanted
+
+    def has_recording_preview_subscribers(self) -> bool:
+        return any(c.wants_recording_preview for c in self.clients.values())
+
+    async def broadcast_to_recording_preview_subscribers(self, type_: str, payload: dict) -> None:
+        message = json.dumps({"type": type_, "payload": payload})
+        dead = []
+        for ws, client in list(self.clients.items()):
+            if not client.wants_recording_preview:
+                continue
+            try:
+                await ws.send_text(message)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.unregister(ws)
 
     async def broadcast(self, type_: str, payload: dict) -> None:
         message = json.dumps({"type": type_, "payload": payload})

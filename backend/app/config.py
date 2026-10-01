@@ -12,7 +12,7 @@ AUDIO_HEADER_FORMAT = "<II"  # seq: uint32, timestamp: uint32
 AUDIO_HEADER_BYTES = 8
 
 # -- rolling buffer --
-ROLLING_BUFFER_SECONDS = 1.0
+ROLLING_BUFFER_SECONDS = 4.0  # recording can start up to 3s back; extra second absorbs click latency
 
 # -- recording --
 RECORDING_MAX_SECONDS = 20 * 60

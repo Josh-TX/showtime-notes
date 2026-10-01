@@ -7,6 +7,7 @@ import numpy as np
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from . import listen_service, recording, sync_service, ws_manager
+from .audio_buffer import LIVE_PEAKS_PER_SECOND
 from .config import AUDIO_HEADER_BYTES
 from .state import state
 
@@ -63,6 +64,8 @@ async def _handle_control_message(websocket: WebSocket, message: dict) -> None:
             ws_manager.manager.listener_ws = None
             state.listener_device_name = None
             await state.broadcast_show()
+    elif type_ == "set_recording_preview_subscription":
+        ws_manager.manager.set_recording_preview_wanted(websocket, bool(payload.get("wanted")))
     elif type_ == "set_live_audio_subscription":
         ws_manager.manager.set_live_audio_wanted(websocket, bool(payload.get("wanted")))
 
@@ -73,6 +76,17 @@ async def _handle_audio_chunk(websocket: WebSocket, data: bytes) -> None:
     pcm = np.frombuffer(data[AUDIO_HEADER_BYTES:], dtype="<i2")
 
     state.rolling_buffer.push(pcm)
+    if ws_manager.manager.has_recording_preview_subscribers():
+        buf = state.rolling_buffer
+        await ws_manager.manager.broadcast_to_recording_preview_subscribers(
+            "recording_preview",
+            {
+                "endTsMs": buf.end_ts_ms,
+                "endPeakIndex": buf.end_peak_index,
+                "peaksPerSecond": LIVE_PEAKS_PER_SECOND,
+                "peaks": buf.peaks(len(pcm)),
+            },
+        )
     await recording.push_audio(pcm)
     await sync_service.feed_live_audio(pcm)
     await listen_service.handle_chunk(pcm, data)

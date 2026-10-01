@@ -11,23 +11,7 @@ const store = useShowStore()
 const freeNotes = ref('')
 const recordingName = ref('')
 let saveTimer: number | undefined
-
-const newRecordingName = ref('')
-
-watch(
-  () => store.isStartingRecording,
-  (isStarting) => {
-    if (isStarting) newRecordingName.value = ''
-  },
-)
-
-async function startNewRecording(includePreRoll: boolean): Promise<void> {
-  await api.startRecording(includePreRoll, newRecordingName.value.trim())
-}
-
-function cancelNewRecording(): void {
-  store.cancelStartRecording()
-}
+let nameTimer: number | undefined
 
 watch(
   () => store.selectedSong?.id,
@@ -37,6 +21,24 @@ watch(
   },
   { immediate: true },
 )
+
+// pick up name changes made by other clients, unless we have an unsent edit of our own
+watch(
+  () => store.selectedSong?.name,
+  (name) => {
+    if (nameTimer === undefined) recordingName.value = name ?? ''
+  },
+)
+
+function onNameInput(): void {
+  window.clearTimeout(nameTimer)
+  const songId = store.selectedSong?.id
+  if (!songId) return
+  nameTimer = window.setTimeout(async () => {
+    nameTimer = undefined
+    await api.renameSong(songId, recordingName.value.trim())
+  }, 500)
+}
 
 function onInput(): void {
   window.clearTimeout(saveTimer)
@@ -56,6 +58,8 @@ const elapsed = computed(() => {
 
 async function stopAndSave(): Promise<void> {
   if (!recordingName.value.trim()) return
+  window.clearTimeout(nameTimer)
+  nameTimer = undefined
   await api.stopAndSaveRecording(recordingName.value.trim())
 }
 
@@ -87,22 +91,11 @@ async function toggleSync(): Promise<void> {
 </script>
 
 <template>
-  <div class="song-panel" v-if="store.isStartingRecording">
-    <div class="title-row">
-      <h2>Start new recording</h2>
-      <button class="cancel-btn" @click="cancelNewRecording">Cancel</button>
-    </div>
-    <input v-model="newRecordingName" class="name-input" placeholder="Song Name" />
-    <div class="recording-actions">
-      <button @click="startNewRecording(false)">Start recording now</button>
-      <button @click="startNewRecording(true)">Start recording 1 second ago</button>
-    </div>
-  </div>
-  <div class="song-panel" v-else-if="store.selectedSong">
+  <div class="song-panel" v-if="store.selectedSong">
     <template v-if="store.selectedSong.status === 'recording'">
       <div class="recording-header">
         <span class="rec-dot" />
-        <input v-model="recordingName" class="name-input" placeholder="Recording name" />
+        <input v-model="recordingName" class="name-input" placeholder="Song Name" @input="onNameInput" />
         <span class="elapsed">{{ elapsed }}</span>
       </div>
       <div class="recording-actions">

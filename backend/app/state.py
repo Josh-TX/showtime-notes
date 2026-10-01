@@ -35,7 +35,6 @@ class ServerState:
 
         self.rolling_buffer = RollingBuffer()
         self.recording: RecordingBuffer | None = None
-        self.recording_pre_roll_included = False
         self.recording_song_id: str | None = None
 
         self.listener_device_name: str | None = None

@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
-import NewRecordingButton from './NewRecordingButton.vue'
 import SyncArrows from './SyncArrows.vue'
 import ProcessingGears from './ProcessingGears.vue'
 import type { SongSummary } from '../types'
@@ -84,7 +83,8 @@ function targetSyncColor(): string {
         @drop.prevent="onDrop"
         @dragend="endDrag"
       >
-        <span class="name">{{ song.name }}</span>
+        <span v-if="song.name" class="name">{{ song.name }}</span>
+        <span v-else class="name untitled">(untitled song)</span>
         <span v-if="song.status === 'recording'" class="rec-dot" />
         <ProcessingGears v-else-if="song.status === 'processing'" :size="16" />
         <SyncArrows v-else-if="song.id === store.show?.sync.targetSongId" :color="targetSyncColor()" :size="16" />
@@ -98,7 +98,6 @@ function targetSyncColor(): string {
         >
       </div>
     </div>
-    <NewRecordingButton />
   </div>
 </template>
 
@@ -156,6 +155,9 @@ function targetSyncColor(): string {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.untitled {
+  color: #777;
 }
 .rec-dot {
   width: 10px;

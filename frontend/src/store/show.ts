@@ -19,7 +19,6 @@ export const useShowStore = defineStore('show', {
     show: null as ShowInfo | null,
     selectedSongId: null as string | null,
     selectedSong: null as Song | null,
-    isStartingRecording: false,
     waveform: null as Waveform | null,
     recordingPeaks: [] as number[],
     positionAnchor: null as { refSeconds: number; wallclockMs: number } | null,
@@ -58,13 +57,6 @@ export const useShowStore = defineStore('show', {
           this.selectedSong = null
           this.waveform = null
           this.recordingPeaks = []
-        }
-        if (this.isStartingRecording) {
-          const recordingSong = payload.songs.find((s) => s.status === 'recording')
-          if (recordingSong) {
-            this.isStartingRecording = false
-            this.selectSong(recordingSong.id)
-          }
         }
         if (payload.sync.targetSongId !== this.selectedSongId) {
           this.positionAnchor = null
@@ -145,7 +137,6 @@ export const useShowStore = defineStore('show', {
     },
 
     async selectSong(id: string): Promise<void> {
-      this.isStartingRecording = false
       this.deselect()
       this.selectedSongId = id
       if (this.show?.sync.targetSongId === id) {
@@ -169,23 +160,6 @@ export const useShowStore = defineStore('show', {
       } else if (this.selectedSong.status === 'recording') {
         this.recordingPeaks = (await api.getRecordingPeaks(id)).peaks
       }
-    },
-
-    openStartRecording(): void {
-      this.isStartingRecording = true
-      this.deselect()
-      this.selectedSongId = null
-      this.selectedSong = null
-      this.waveform = null
-      this.recordingPeaks = []
-      this.positionAnchor = null
-      this.confidenceBars = []
-      this.snapshotWallclockMs = null
-      this.bestCandidates = []
-      this.syncPhase = null
-    },
-    cancelStartRecording(): void {
-      this.isStartingRecording = false
     },
 
     becomeListener(): void {

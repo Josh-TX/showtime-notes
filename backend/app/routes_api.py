@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from . import recording, storage, sync_service
+from .audio_buffer import LIVE_PEAKS_PER_SECOND
 from .models import AcquireMode, ApiModel, NoteColor, RecentNote, Song, TimelineNote
 from .state import state
 
@@ -187,14 +188,28 @@ async def delete_timeline_note(song_id: str, note_id: str):
 # -- recording --
 
 class StartRecordingBody(ApiModel):
-    include_pre_roll: bool = True
     name: str | None = None
+    click_ts_ms: float
+    offset_seconds: float = 0.0
+
+
+@router.get("/recording/preview")
+async def recording_preview():
+    """The rolling buffer's recent loudness, for the new-recording modal."""
+    buf = state.rolling_buffer
+    return {
+        "endTsMs": buf.end_ts_ms,
+        "endPeakIndex": buf.end_peak_index,
+        "peaksPerSecond": LIVE_PEAKS_PER_SECOND,
+        "peaks": buf.peaks(),
+    }
 
 
 @router.post("/recording/start")
 async def start_recording(body: StartRecordingBody):
     try:
-        song = await recording.start_recording(body.include_pre_roll, body.name)
+        start_ts_ms = body.click_ts_ms - max(0.0, body.offset_seconds) * 1000.0
+        song = await recording.start_recording(body.name, start_ts_ms)
     except ValueError as e:
         raise HTTPException(409, str(e))
     return song.model_dump(by_alias=True)

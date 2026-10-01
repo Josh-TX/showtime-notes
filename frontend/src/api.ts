@@ -33,8 +33,10 @@ export const api = {
     request<TimelineNote>('PUT', `/songs/${id}/timeline-notes/${noteId}`, patch),
   deleteTimelineNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/timeline-notes/${noteId}`),
 
-  startRecording: (includePreRoll: boolean, name?: string) =>
-    request<Song>('POST', '/recording/start', { includePreRoll, name }),
+  getRecordingPreview: () =>
+    request<{ endTsMs: number; endPeakIndex: number; peaksPerSecond: number; peaks: number[] }>('GET', '/recording/preview'),
+  startRecording: (name: string, clickTsMs: number, offsetSeconds: number) =>
+    request<Song>('POST', '/recording/start', { name, clickTsMs, offsetSeconds }),
   stopAndSaveRecording: (name: string) => request<Song>('POST', '/recording/stop-and-save', { name }),
   stopAndDiscardRecording: () => request<void>('POST', '/recording/stop-and-discard'),
 

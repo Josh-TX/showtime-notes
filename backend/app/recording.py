@@ -1,4 +1,4 @@
-"""Recording lifecycle: start (optionally seeded with the rolling pre-roll buffer) -> the take is named while still
+"""Recording lifecycle: start (seeded with rolling-buffer audio from a client-chosen wall-clock time) -> the take is named while still
 recording -> stop-and-save (kicks off processing) or stop-and-discard (thrown away immediately, no processing).
 Managed by any client - not tied to a particular websocket connection, so it survives a client disconnecting
 mid-take."""
@@ -15,17 +15,16 @@ def is_recording() -> bool:
     return state.recording is not None
 
 
-async def start_recording(include_pre_roll: bool, name: str | None = None) -> Song:
+async def start_recording(name: str | None = None, start_ts_ms: float | None = None) -> Song:
     if state.recording is not None:
         raise ValueError("a recording is already in progress")
     state.recording = RecordingBuffer()
-    state.recording_pre_roll_included = include_pre_roll
-    if include_pre_roll:
-        state.recording.push(state.rolling_buffer.snapshot())
+    if start_ts_ms is not None:
+        state.recording.push(state.rolling_buffer.snapshot_from(start_ts_ms))
 
     song = Song(
         id=uuid.uuid4().hex[:12],
-        name=(name or "").strip() or "New Recording",
+        name=(name or "").strip(),
         status=SongStatus.RECORDING,
     )
     state.recording_song_id = song.id
