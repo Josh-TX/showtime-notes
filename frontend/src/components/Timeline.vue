@@ -2,6 +2,9 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
 import { clientSettings } from '../store/clientSettings'
+import { playerPause, playerPlay, playerSeek, playerSetDoubleSpeed, playerSetStem, playerStop, songPlayer, type Stem } from '../audio/songPlayer'
+import CheckboxInput from './CheckboxInput.vue'
+import RadioButtonGroup from './RadioButtonGroup.vue'
 import TimelineNotes from './TimelineNotes.vue'
 import { PositionSmoother, type BarState } from './smoothing'
 import { PEAKS_PER_SECOND, computeTiles, drawWaveformTile, prepareTile } from './timelineDraw'
@@ -162,11 +165,70 @@ function tick(): void {
     store.snapshotWallclockMs === null ? 0 : ((Date.now() - store.snapshotWallclockMs) / 1000) * pixelsPerSecond.value
   if (frame.scrollPosition !== null && containerEl.value) {
     containerEl.value.scrollLeft = frame.scrollPosition * pps
+  } else if (playbackVisible.value && autoScroll.value && containerEl.value) {
+    const targetPx = songPlayer.position * pps
+    let px = targetPx
+    if (seekScroll) {
+      const t = (nowMs - seekScroll.startMs) / SEEK_SCROLL_MS
+      if (t >= 1) seekScroll = null
+      else px = seekScroll.startPx + (targetPx - seekScroll.startPx) * (1 - (1 - t) ** 3)
+    }
+    containerEl.value.scrollLeft = px
   }
   rafId = requestAnimationFrame(tick)
 }
 
 const NOTE_HEIGHT = 32
+
+// Direct user scroll input (wheel, touch, scrollbar drag) turns auto-scroll off; programmatic scrollLeft doesn't.
+function onUserScroll(): void {
+  autoScroll.value = false
+}
+function onContainerPointerDown(event: PointerEvent): void {
+  // pointerdown targets the container itself only on its scrollbar; timeline content is a child
+  if (event.target === containerEl.value) autoScroll.value = false
+}
+const SEEKBAR_HEIGHT = 24
+const SEEK_SCROLL_MS = 200
+// Set on each seek so auto-scroll eases from the current scroll to the (live) playback position
+let seekScroll: { startPx: number; startMs: number } | null = null
+const SEEKBAR_BOTTOM = 20
+const STEMS: Stem[] = ['original', 'vocals', 'novocals']
+
+// Playback is only allowed on ready songs; otherwise the checkbox shows off+disabled without touching the setting.
+const playbackAllowed = computed(() => store.selectedSong?.status === 'ready')
+const playbackChecked = computed({
+  get: () => playbackAllowed.value && clientSettings.playbackEnabled,
+  set: (v: boolean) => {
+    clientSettings.playbackEnabled = v
+  },
+})
+const playbackVisible = computed(() => playbackChecked.value)
+const seekFraction = computed(() => (durationSeconds.value > 0 ? Math.min(1, songPlayer.position / durationSeconds.value) : 0))
+
+function togglePlay(): void {
+  const id = store.selectedSong?.id
+  if (!id) return
+  if (songPlayer.playing) playerPause()
+  else playerPlay(id)
+}
+
+function seekFromEvent(event: PointerEvent): void {
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const seconds = ((event.clientX - rect.left) / rect.width) * durationSeconds.value
+  const id = store.selectedSong?.id
+  if (id && containerEl.value) seekScroll = { startPx: containerEl.value.scrollLeft, startMs: Date.now() }
+  if (id) playerSeek(id, Math.min(durationSeconds.value, Math.max(0, seconds)))
+}
+
+function onSeekDown(event: PointerEvent): void {
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  seekFromEvent(event)
+}
+
+function onSeekMove(event: PointerEvent): void {
+  if ((event.currentTarget as HTMLElement).hasPointerCapture(event.pointerId)) seekFromEvent(event)
+}
 
 function onTimelineClick(event: MouseEvent): void {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
@@ -179,7 +241,16 @@ function onTimelineClick(event: MouseEvent): void {
 }
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
-watch(() => store.selectedSong?.id, () => smoother.reset())
+watch(() => store.selectedSong?.id, () => {
+  smoother.reset()
+  playerStop()
+})
+watch(playbackAllowed, (ok) => {
+  if (!ok) playerStop()
+})
+watch(playbackVisible, (v) => {
+  if (!v) playerPause()
+})
 watch(pixelsPerSecond, () => nextTick(refreshLayout))
 watch(
   () => [store.confidenceBars, store.bestCandidates, store.syncPhase],
@@ -207,10 +278,32 @@ onUnmounted(() => {
 <template>
   <div class="timeline-wrap">
     <div class="timeline-toolbar">
-      <label><input type="checkbox" v-model="autoScroll" /> auto-scroll</label>
+      <CheckboxInput v-model="autoScroll" label="auto-scroll" font-size="1rem" />
+      <CheckboxInput v-model="playbackChecked" label="playback" font-size="1rem" :disabled="!playbackAllowed" />
+      <template v-if="playbackVisible">
+        <button type="button" @click="togglePlay">{{ songPlayer.playing ? 'pause' : 'play' }}</button>
+        <CheckboxInput
+          :model-value="songPlayer.doubleSpeed"
+          label="2x speed"
+          font-size="1rem"
+          @update:model-value="playerSetDoubleSpeed"
+        />
+        <RadioButtonGroup
+          :model-value="songPlayer.stem"
+          :options="STEMS"
+          font-size="1rem"
+          @update:model-value="playerSetStem"
+        />
+      </template>
     </div>
     <div class="timeline-outer">
-      <div class="timeline-container" ref="containerEl">
+      <div
+        class="timeline-container"
+        ref="containerEl"
+        @wheel.passive="onUserScroll"
+        @touchmove.passive="onUserScroll"
+        @pointerdown="onContainerPointerDown"
+      >
         <div
           v-if="store.selectedSong"
           class="timeline"
@@ -228,6 +321,21 @@ onUnmounted(() => {
             />
           </div>
           <div class="end-area" :style="{ width: `${endWidthPx}px` }"></div>
+          <div
+            v-if="playbackVisible"
+            class="seekbar"
+            :style="{
+              left: `${startWidthPx}px`,
+              width: `${canvasWidthPx}px`,
+              height: `${SEEKBAR_HEIGHT}px`,
+              bottom: `${SEEKBAR_BOTTOM}px`,
+            }"
+            @pointerdown.stop="onSeekDown"
+            @pointermove="onSeekMove"
+            @click.stop
+          >
+            <div class="seekbar-fill" :style="{ width: `${seekFraction * 100}%` }"></div>
+          </div>
           <canvas
             v-if="store.syncPhase === 'tracking'"
             ref="trackingBarsCanvas"
@@ -248,6 +356,11 @@ onUnmounted(() => {
             />
           </div>
           <TimelineNotes :start-width-px="startWidthPx" :pixels-per-second="pixelsPerSecond" />
+          <div
+            v-if="playbackVisible"
+            class="playback-bar"
+            :style="{ left: `${positionToLeft(songPlayer.position)}px` }"
+          />
           <div
             v-for="(bar, i) in positionBars"
             :key="i"
@@ -270,6 +383,9 @@ onUnmounted(() => {
   padding: 0.2rem 0.6rem;
   font-size: 0.8rem;
   border-bottom: 1px solid #2a2a2a;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
 }
 .timeline-outer {
   position: relative;
@@ -317,5 +433,28 @@ onUnmounted(() => {
   width: 1px;
   background: #fff;
   z-index: 3;
+}
+</style>
+<style scoped>
+.seekbar {
+  position: absolute;
+  background: rgba(160, 80, 255, 0.22);
+  z-index: 4;
+  cursor: pointer;
+  touch-action: none;
+}
+.seekbar-fill {
+  height: 100%;
+  background: rgb(160, 80, 255);
+  pointer-events: none;
+}
+.playback-bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgb(160, 80, 255);
+  z-index: 3;
+  pointer-events: none;
 }
 </style>

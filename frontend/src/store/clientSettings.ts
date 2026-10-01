@@ -9,6 +9,7 @@ export interface ClientSettings {
   timelineWidthSeconds: number
   autoScrollLeftOffsetPercent: number
   lastNoteColor: NoteColor
+  playbackEnabled: boolean
 }
 
 export const SETTING_LIMITS = {
@@ -21,6 +22,7 @@ const defaults: ClientSettings = {
   timelineWidthSeconds: 30,
   autoScrollLeftOffsetPercent: 25,
   lastNoteColor: 'gray',
+  playbackEnabled: false,
 }
 
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
@@ -43,6 +45,7 @@ function load(): ClientSettings {
     timelineWidthSeconds: clamp(raw.timelineWidthSeconds, w.min, w.max, defaults.timelineWidthSeconds),
     autoScrollLeftOffsetPercent: clamp(raw.autoScrollLeftOffsetPercent, o.min, o.max, defaults.autoScrollLeftOffsetPercent),
     lastNoteColor: raw.lastNoteColor && raw.lastNoteColor in NOTE_COLORS ? raw.lastNoteColor : defaults.lastNoteColor,
+    playbackEnabled: typeof raw.playbackEnabled === 'boolean' ? raw.playbackEnabled : defaults.playbackEnabled,
   }
 }
 
