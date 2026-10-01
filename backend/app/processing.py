@@ -24,7 +24,7 @@ NORMALIZE_PERCENTILE = 98
 NO_SCALE_BELOW = 0.01
 FULL_SCALE_ABOVE = 0.05
 
-ProgressCB = Callable[[float], None]
+ProgressCB = Callable[[float, str], None]  # (fraction done, what's happening next)
 
 
 def _write_wav(path: Path, pcm_int16: np.ndarray, sample_rate: int) -> None:
@@ -93,29 +93,29 @@ def process_recording(song_id: str, pcm_int16: np.ndarray, on_progress: Progress
         original_wav = tmp_dir / "original.wav"
         _write_wav(original_wav, pcm_int16, CAPTURE_SR)
         duration_seconds = len(pcm_int16) / CAPTURE_SR
-        on_progress(0.1)
-
-        vocals_wav, novocals_wav = _separate_vocals(original_wav, tmp_dir / "separated")
-        on_progress(0.5)
+        on_progress(0.05, "detecting beats")
 
         beats, downbeats = _detect_beats(original_wav)
-        on_progress(0.65)
+        on_progress(0.1, "splitting vocals and novocals")
+
+        vocals_wav, novocals_wav = _separate_vocals(original_wav, tmp_dir / "separated")
+        on_progress(0.75, "computing waveforms")
 
         vocals_mono, vocals_sr = _load_wav_mono_float(vocals_wav)
         novocals_mono, novocals_sr = _load_wav_mono_float(novocals_wav)
         storage.save_peaks(song_id, _peaks(vocals_mono, vocals_sr), _peaks(novocals_mono, novocals_sr))
         storage.save_beats(song_id, beats, downbeats)
-        on_progress(0.75)
+        on_progress(0.8, "computing chroma")
 
         original_mono, original_sr = _load_wav_mono_float(original_wav)
         resampled = _resample(original_mono, original_sr, chroma.SR)
         storage.save_chroma(song_id, chroma.compute_chroma(resampled))
-        on_progress(0.85)
+        on_progress(0.85, "compressing audio")
 
         _transcode_aac(original_wav, storage.audio_path(song_id, "original"))
         _transcode_aac(vocals_wav, storage.audio_path(song_id, "vocals"))
         _transcode_aac(novocals_wav, storage.audio_path(song_id, "novocals"))
-        on_progress(1.0)
+        on_progress(1.0, "done")
 
     return duration_seconds
 

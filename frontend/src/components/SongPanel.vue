@@ -121,7 +121,7 @@ async function toggleSync(): Promise<void> {
       </div>
     </template>
     <p v-if="store.selectedSong.status === 'processing'">
-      Processing… {{ Math.round((store.selectedSong.processingProgress ?? 0) * 100) }}%
+      {{ Math.round((store.selectedSong.processingProgress ?? 0) * 100) }}% done<template v-if="store.selectedSong.processingMessage">, {{ store.selectedSong.processingMessage }}</template>
     </p>
     <p v-if="store.selectedSong.processingError" class="error">{{ store.selectedSong.processingError }}</p>
     <textarea v-model="freeNotes" placeholder="Free notes for this song…" @input="onInput" />

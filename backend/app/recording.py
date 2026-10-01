@@ -72,6 +72,7 @@ async def stop_and_save(name: str) -> Song:
     song.name = name.strip()
     song.status = SongStatus.PROCESSING
     song.processing_progress = 0.0
+    song.processing_message = "writing audio"
     song.processing_error = None
     duration = state.recording.duration_seconds
     pcm = state.recording.all_samples()
@@ -84,19 +85,20 @@ async def stop_and_save(name: str) -> Song:
     return song
 
 
-async def _report_progress(song_id: str, progress: float) -> None:
+async def _report_progress(song_id: str, progress: float, message: str) -> None:
     song = state.songs.get(song_id)
     if song is None:
         return
     song.processing_progress = progress
+    song.processing_message = message
     await state.broadcast_song(song_id)
 
 
 async def _run_processing(song_id: str, pcm) -> None:
     loop = asyncio.get_event_loop()
 
-    def on_progress(progress: float) -> None:
-        asyncio.run_coroutine_threadsafe(_report_progress(song_id, progress), loop)
+    def on_progress(progress: float, message: str) -> None:
+        asyncio.run_coroutine_threadsafe(_report_progress(song_id, progress, message), loop)
 
     try:
         duration = await asyncio.to_thread(processing.process_recording, song_id, pcm, on_progress)
@@ -104,10 +106,12 @@ async def _run_processing(song_id: str, pcm) -> None:
         song.status = SongStatus.READY
         song.duration_seconds = duration
         song.processing_progress = None
+        song.processing_message = None
         song.processing_error = None
         await state.save_and_broadcast_song(song)
     except Exception as e:
         song = state.songs[song_id]
         song.processing_progress = None
+        song.processing_message = None
         song.processing_error = str(e)
         await state.save_and_broadcast_song(song)

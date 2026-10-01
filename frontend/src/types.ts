@@ -27,6 +27,7 @@ export interface Song {
   freeNotes: string
   timelineNotes: TimelineNote[]
   processingProgress: number | null
+  processingMessage: string | null
   processingError: string | null
 }
 

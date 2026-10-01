@@ -44,6 +44,7 @@ class Song(ApiModel):
     free_notes: str = ""
     timeline_notes: list[TimelineNote] = []
     processing_progress: float | None = None  # 0-1, set while status == processing
+    processing_message: str | None = None  # what's happening next, set while status == processing
     processing_error: str | None = None
 
 
