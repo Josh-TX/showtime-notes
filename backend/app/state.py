@@ -4,7 +4,9 @@ change."""
 from . import storage, ws_manager
 from .aligner import LiveAligner
 from .audio_buffer import RecordingBuffer, RollingBuffer
-from .models import ClientInfo, ListenerInfo, RecentNote, Song, SongStatus, SongSummary, ShowInfo, SyncState
+from .models import ClientInfo, FavoriteNote, ListenerInfo, Song, SongStatus, SongSummary, ShowInfo, SyncState
+
+FAVORITE_COLUMNS = 3
 
 
 class ServerState:
@@ -13,7 +15,9 @@ class ServerState:
         self.song_order: list[str] = show["songOrder"]
         self.acquire_start_range_seconds: float = show["acquireStartRangeSeconds"]
 
-        self.recent_notes: list[RecentNote] = [RecentNote.model_validate(r) for r in show.get("recentNotes", [])]
+        self.favorites: list[list[FavoriteNote]] = [[] for _ in range(FAVORITE_COLUMNS)]
+        for column, saved in zip(self.favorites, show.get("favorites", [])):
+            column.extend(FavoriteNote.model_validate(f) for f in saved)
 
         self.songs: dict[str, Song] = {}
         for song_id in list(self.song_order):
@@ -48,7 +52,7 @@ class ServerState:
         storage.save_show(
             self.song_order,
             self.acquire_start_range_seconds,
-            [r.model_dump() for r in self.recent_notes],
+            [[f.model_dump() for f in column] for column in self.favorites],
         )
 
     # -- read helpers --
@@ -61,7 +65,7 @@ class ServerState:
             listener=ListenerInfo(device_name=self.listener_device_name),
             sync=self.sync,
             clients=[ClientInfo(device_name=n) for n in ws_manager.manager.device_names()],
-            recent_notes=self.recent_notes,
+            favorites=self.favorites,
         )
 
     # -- mutation + broadcast --

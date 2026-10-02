@@ -1,4 +1,4 @@
-import type { AcquireMode, NoteColor, Song, ShowInfo, TimelineNote, Waveform } from './types'
+import type { AcquireMode, FavoriteNote, NoteColor, Song, ShowInfo, TimelineNote, Waveform } from './types'
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -32,6 +32,14 @@ export const api = {
   ) =>
     request<TimelineNote>('PUT', `/songs/${id}/timeline-notes/${noteId}`, patch),
   deleteTimelineNote: (id: string, noteId: string) => request<void>('DELETE', `/songs/${id}/timeline-notes/${noteId}`),
+
+  addFavorite: (fav: { column: number; index: number; text: string; color: NoteColor }) =>
+    request<FavoriteNote>('POST', '/favorites', fav),
+  moveFavorite: (id: string, column: number, index: number) =>
+    request<void>('PUT', `/favorites/${id}/move`, { column, index }),
+  updateFavorite: (id: string, patch: { text?: string; color?: NoteColor }) =>
+    request<FavoriteNote>('PUT', `/favorites/${id}`, patch),
+  deleteFavorite: (id: string) => request<void>('DELETE', `/favorites/${id}`),
 
   getRecordingPreview: () =>
     request<{ endTsMs: number; endPeakIndex: number; peaksPerSecond: number; peaks: number[] }>('GET', '/recording/preview'),

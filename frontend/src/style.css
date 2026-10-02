@@ -7,6 +7,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-user-drag: none; /* no native drag of images/links; dragging is custom, via handles */
 }
 
 body {

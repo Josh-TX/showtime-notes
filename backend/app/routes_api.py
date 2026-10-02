@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 
 from . import recording, storage, sync_service
 from .audio_buffer import LIVE_PEAKS_PER_SECOND
-from .models import AcquireMode, ApiModel, NoteColor, RecentNote, Song, TimelineNote
+from .models import AcquireMode, ApiModel, FavoriteNote, NoteColor, Song, TimelineNote
 from .state import state
 
 router = APIRouter(prefix="/api")
@@ -114,7 +114,6 @@ async def set_free_notes(song_id: str, body: FreeNotesBody):
 
 
 MAX_NOTE_TEXT_LENGTH = 200
-MAX_RECENT_NOTES = 5
 
 
 def _clean_note_text(text: str) -> str:
@@ -144,11 +143,6 @@ async def add_timeline_note(song_id: str, body: TimelineNoteBody):
     )
     song.timeline_notes.append(note)
     await state.save_and_broadcast_song(song)
-
-    recent = RecentNote(text=text, color=body.color)
-    state.recent_notes = ([recent] + [r for r in state.recent_notes if r != recent])[:MAX_RECENT_NOTES]
-    state.persist_show()
-    await state.broadcast_show()
     return note.model_dump(by_alias=True)
 
 
@@ -182,6 +176,83 @@ async def delete_timeline_note(song_id: str, note_id: str):
     song = _song_or_404(song_id)
     song.timeline_notes = [n for n in song.timeline_notes if n.id != note_id]
     await state.save_and_broadcast_song(song)
+    return {"ok": True}
+
+
+# -- favorites (shared by all clients; fixed columns, each an ordered list) --
+
+
+def _favorite_column(column: int) -> list[FavoriteNote]:
+    if not 0 <= column < len(state.favorites):
+        raise HTTPException(400, f"column must be 0-{len(state.favorites) - 1}")
+    return state.favorites[column]
+
+
+def _find_favorite(favorite_id: str) -> tuple[list[FavoriteNote], FavoriteNote]:
+    for column in state.favorites:
+        for fav in column:
+            if fav.id == favorite_id:
+                return column, fav
+    raise HTTPException(404, "no such favorite")
+
+
+async def _favorites_changed() -> None:
+    state.persist_show()
+    await state.broadcast_show()
+
+
+class AddFavoriteBody(ApiModel):
+    column: int
+    index: int
+    text: str
+    color: NoteColor
+
+
+@router.post("/favorites")
+async def add_favorite(body: AddFavoriteBody):
+    column = _favorite_column(body.column)
+    fav = FavoriteNote(id=uuid.uuid4().hex[:12], text=_clean_note_text(body.text), color=body.color)
+    column.insert(max(0, body.index), fav)
+    await _favorites_changed()
+    return fav.model_dump(by_alias=True)
+
+
+class MoveFavoriteBody(ApiModel):
+    column: int
+    index: int  # position within the destination column once the favorite has been removed from its old spot
+
+
+@router.put("/favorites/{favorite_id}/move")
+async def move_favorite(favorite_id: str, body: MoveFavoriteBody):
+    dest = _favorite_column(body.column)
+    source, fav = _find_favorite(favorite_id)
+    source.remove(fav)
+    dest.insert(max(0, body.index), fav)
+    await _favorites_changed()
+    return {"ok": True}
+
+
+class UpdateFavoriteBody(ApiModel):
+    text: str | None = None
+    color: NoteColor | None = None
+
+
+@router.put("/favorites/{favorite_id}")
+async def update_favorite(favorite_id: str, body: UpdateFavoriteBody):
+    _, fav = _find_favorite(favorite_id)
+    if body.text is not None:
+        fav.text = _clean_note_text(body.text)
+    if body.color is not None:
+        fav.color = body.color
+    await _favorites_changed()
+    return fav.model_dump(by_alias=True)
+
+
+@router.delete("/favorites/{favorite_id}")
+async def delete_favorite(favorite_id: str):
+    column, fav = _find_favorite(favorite_id)
+    column.remove(fav)
+    await _favorites_changed()
     return {"ok": True}
 
 

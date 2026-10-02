@@ -68,20 +68,8 @@ watch(elapsedSeconds, (seconds, prev) => {
 })
 watch(followLive, scrollToLive)
 
-const NOTE_HEIGHT = 32
-
-function onTimelineClick(event: MouseEvent): void {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const seconds = (event.clientX - rect.left - startWidthPx.value) / pixelsPerSecond.value
-  const y = event.clientY - rect.top
-  store.selectPosition(
-    Math.min(elapsedSeconds.value, Math.max(0, seconds)),
-    Math.min(rect.height - NOTE_HEIGHT, Math.max(0, y)),
-  )
-}
-
 // Programmatic scrolls don't fire these, so any of them means the user took over. Pointer-down only counts on
-// the container itself (its scrollbar), so clicking the timeline to select a position/note keeps following.
+// the container itself (its scrollbar), so clicking the timeline keeps following.
 function stopFollowing(): void {
   followLive.value = false
 }
@@ -108,7 +96,7 @@ onUnmounted(() => resizeObserver?.disconnect())
       @touchmove.passive="stopFollowing"
       @pointerdown.self="stopFollowing"
     >
-      <div class="timeline" :style="{ width: `${timelineWidthPx}px` }" @click="onTimelineClick">
+      <div class="timeline" :style="{ width: `${timelineWidthPx}px` }">
         <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
         <div class="wave-tiles" :style="{ left: `${startWidthPx}px`, width: `${canvasWidthPx}px` }">
           <canvas

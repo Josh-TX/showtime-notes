@@ -31,7 +31,8 @@ class TimelineNote(ApiModel):
     color: NoteColor = "gray"
 
 
-class RecentNote(ApiModel):
+class FavoriteNote(ApiModel):
+    id: str
     text: str
     color: NoteColor
 
@@ -116,4 +117,4 @@ class ShowInfo(ApiModel):
     listener: ListenerInfo
     sync: SyncState
     clients: list[ClientInfo]
-    recent_notes: list[RecentNote] = []
+    favorites: list[list[FavoriteNote]] = []  # one list per column, top to bottom

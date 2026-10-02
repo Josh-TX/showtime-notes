@@ -178,8 +178,6 @@ function tick(): void {
   rafId = requestAnimationFrame(tick)
 }
 
-const NOTE_HEIGHT = 32
-
 // Direct user scroll input (wheel, touch, scrollbar drag) turns auto-scroll off; programmatic scrollLeft doesn't.
 function onUserScroll(): void {
   autoScroll.value = false
@@ -228,16 +226,6 @@ function onSeekDown(event: PointerEvent): void {
 
 function onSeekMove(event: PointerEvent): void {
   if ((event.currentTarget as HTMLElement).hasPointerCapture(event.pointerId)) seekFromEvent(event)
-}
-
-function onTimelineClick(event: MouseEvent): void {
-  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
-  const seconds = (event.clientX - rect.left - startWidthPx.value) / pixelsPerSecond.value
-  const y = event.clientY - rect.top
-  store.selectPosition(
-    Math.min(store.maxNoteSeconds, Math.max(0, seconds)),
-    Math.min(rect.height - NOTE_HEIGHT, Math.max(0, y)),
-  )
 }
 
 watch(() => store.waveform, () => nextTick(drawWaveform))
@@ -308,7 +296,6 @@ onUnmounted(() => {
           v-if="store.selectedSong"
           class="timeline"
           :style="{ width: `${timelineWidthPx}px` }"
-          @click="onTimelineClick"
         >
           <div class="start-area" :style="{ width: `${startWidthPx}px` }"></div>
           <div class="wave-tiles" :style="{ width: `${canvasWidthPx}px`, height: `${totalHeightPx}px` }">

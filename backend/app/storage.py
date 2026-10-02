@@ -87,15 +87,15 @@ def load_chroma(song_id: str) -> np.ndarray:
     return np.load(chroma_path(song_id))
 
 
-def save_show(song_order: list[str], acquire_start_range_seconds: float, recent_notes: list[dict]) -> None:
+def save_show(song_order: list[str], acquire_start_range_seconds: float, favorites: list[list[dict]]) -> None:
     SHOW_FILE.write_text(json.dumps({
         "songOrder": song_order,
         "acquireStartRangeSeconds": acquire_start_range_seconds,
-        "recentNotes": recent_notes,
+        "favorites": favorites,
     }))
 
 
 def load_show() -> dict:
     if not SHOW_FILE.exists():
-        return {"songOrder": [], "acquireStartRangeSeconds": 20.0, "recentNotes": []}
+        return {"songOrder": [], "acquireStartRangeSeconds": 20.0, "favorites": []}
     return json.loads(SHOW_FILE.read_text())

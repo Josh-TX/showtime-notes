@@ -14,7 +14,8 @@ export interface TimelineNote {
   color: NoteColor
 }
 
-export interface RecentNote {
+export interface FavoriteNote {
+  id: string
   text: string
   color: NoteColor
 }
@@ -74,7 +75,7 @@ export interface ShowInfo {
   listener: ListenerInfo
   sync: SyncState
   clients: ClientInfo[]
-  recentNotes: RecentNote[]
+  favorites: FavoriteNote[][] // one list per column, top to bottom
 }
 
 export interface ConfidenceBar {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
 import { ws } from '../ws'
-import type { ConfidenceBar, TimelineNote, Song, ShowInfo, SongSummary, SyncCandidate, SyncPhase, Waveform } from '../types'
+import type { ConfidenceBar, Song, ShowInfo, SongSummary, SyncCandidate, SyncPhase, Waveform } from '../types'
 
 const LIVE_PEAKS_PER_SECOND = 50
 const HAS_AUDIO_STATUSES = new Set(['ready', 'syncing'])
@@ -29,14 +29,8 @@ export const useShowStore = defineStore('show', {
     loudness: 0,
     isListener: false,
     wantsLiveAudio: false,
-    // client-local; a position and a note are never selected at the same time
-    selectedPosition: null as { timeSeconds: number; y: number } | null,
-    selectedNoteId: null as string | null,
   }),
   getters: {
-    selectedNote(state): TimelineNote | null {
-      return state.selectedSong?.timelineNotes.find((n) => n.id === state.selectedNoteId) ?? null
-    },
     // Latest time a note may sit at: the song end, or the recorded length so far while recording.
     maxNoteSeconds(state): number {
       const song = state.selectedSong
@@ -52,7 +46,6 @@ export const useShowStore = defineStore('show', {
         this.show = payload
         if (payload.listener.deviceName !== deviceName) this.isListener = false
         if (this.selectedSongId && !payload.songs.some((s) => s.id === this.selectedSongId)) {
-          this.deselect()
           this.selectedSongId = null
           this.selectedSong = null
           this.waveform = null
@@ -102,19 +95,6 @@ export const useShowStore = defineStore('show', {
       api.getState().then((state) => (this.show = state))
     },
 
-    selectPosition(timeSeconds: number, y: number): void {
-      this.selectedPosition = { timeSeconds, y }
-      this.selectedNoteId = null
-    },
-    selectNote(id: string): void {
-      this.selectedNoteId = id
-      this.selectedPosition = null
-    },
-    deselect(): void {
-      this.selectedPosition = null
-      this.selectedNoteId = null
-    },
-
     _onSongUpdate(song: Song): void {
       if (this.show) {
         const idx = this.show.songs.findIndex((s) => s.id === song.id)
@@ -137,7 +117,6 @@ export const useShowStore = defineStore('show', {
     },
 
     async selectSong(id: string): Promise<void> {
-      this.deselect()
       this.selectedSongId = id
       if (this.show?.sync.targetSongId === id) {
         this.positionAnchor = anchorFromSync(this.show.sync)
