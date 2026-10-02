@@ -355,7 +355,7 @@ onUnmounted(() => {
               :style="{ left: `${tile.left}px`, width: `${tile.width}px`, height: `${totalHeightPx}px` }"
             />
           </div>
-          <TimelineNotes :start-width-px="startWidthPx" :pixels-per-second="pixelsPerSecond" />
+          <TimelineNotes :start-width-px="startWidthPx" :pixels-per-second="pixelsPerSecond" :beats="store.waveform?.beats" :downbeats="store.waveform?.downbeats" />
           <div
             v-if="playbackVisible"
             class="playback-bar"
