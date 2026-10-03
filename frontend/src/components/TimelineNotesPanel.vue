@@ -6,6 +6,7 @@ import { beginNoteDrag, noteDrag } from '../store/noteDrag'
 import ColorPicker from './ColorPicker.vue'
 import FavoritesColumn from './FavoritesColumn.vue'
 import NoteChip from './NoteChip.vue'
+import TrashBubble from './TrashBubble.vue'
 
 const MAX_TEXT_LENGTH = 200
 
@@ -13,10 +14,8 @@ const store = useShowStore()
 
 const newText = ref('')
 const trimmedText = computed(() => newText.value.trim())
-// only the draft gets drag styling; any dragged note gets the ghost while off the timeline
-const draggingNew = computed(() => noteDrag.active && noteDrag.item?.id === null)
 const draftPressed = ref(false)
-const draftDragging = computed(() => draftPressed.value && draggingNew.value)
+const draftIsSource = computed(() => draftPressed.value && noteDrag.active)
 watch(
   () => noteDrag.item,
   (item) => {
@@ -33,6 +32,7 @@ function onPress(e: PointerEvent): void {
     text: trimmedText.value,
     color: clientSettings.lastNoteColor,
     onDropped: () => (newText.value = ''),
+    trash: { label: 'delete new note', run: () => (newText.value = '') },
   })
 }
 </script>
@@ -50,8 +50,7 @@ function onPress(e: PointerEvent): void {
             class="draft"
             :text="trimmedText"
             :color="clientSettings.lastNoteColor"
-            :dragging="draftDragging"
-            :invalid="draftDragging && !noteDrag.valid"
+            :source="draftIsSource"
             @press="onPress"
           />
           <div v-else class="placeholder">type text, then drag onto the timeline</div>
@@ -61,16 +60,7 @@ function onPress(e: PointerEvent): void {
         <FavoritesColumn title="Favorites 3" :column="2" :notes="store.show?.favorites[2] ?? []" />
       </div>
     </div>
-    <!-- follows the pointer while it's off the timeline (on it, the timeline shows a snapped preview instead) -->
-    <NoteChip
-      v-if="noteDrag.active && !noteDrag.valid && noteDrag.item"
-      class="ghost"
-      :text="noteDrag.item.text"
-      :color="noteDrag.item.color"
-      dragging
-      invalid
-      :style="{ left: `${noteDrag.pointerX - noteDrag.grabX}px`, top: `${noteDrag.pointerY - noteDrag.grabY}px` }"
-    />
+    <TrashBubble />
   </div>
 </template>
 
@@ -140,10 +130,5 @@ input {
 }
 .draft {
   max-width: 100%;
-}
-.ghost {
-  position: fixed;
-  z-index: 100;
-  pointer-events: none;
 }
 </style>

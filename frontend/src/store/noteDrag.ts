@@ -10,6 +10,7 @@ export interface DragItem {
   text: string
   color: NoteColor
   onDropped?: () => void // called once the drop landed on a valid spot
+  trash?: { label: string; run: () => void } // present when the source can be deleted by dropping on the trash bubble
 }
 
 // A press becomes a drag after moving this far, or after being held this long. The hold matters during
@@ -20,7 +21,7 @@ const DRAG_HOLD_MS = 200
 export const noteDrag = reactive({
   item: null as DragItem | null,
   active: false,
-  // the layer reports whether the pointer is currently over a valid drop spot
+  // the timeline layer reports whether the pointer is over a valid spot (it then shows its own snapped preview)
   valid: false,
   pointerX: 0,
   pointerY: 0,
@@ -40,7 +41,9 @@ export function addNoteDropHandler(handler: () => boolean): () => void {
 }
 
 function activate(): void {
-  if (noteDrag.item) noteDrag.active = true
+  if (!noteDrag.item) return
+  noteDrag.active = true
+  document.body.classList.add('note-dragging')
 }
 
 function onPointerMove(e: PointerEvent): void {
@@ -67,6 +70,7 @@ export function endNoteDrag(): void {
   noteDrag.item = null
   noteDrag.active = false
   noteDrag.valid = false
+  document.body.classList.remove('note-dragging')
 }
 
 // Call from a note's pointerdown. noteEl is the element that visually is the note (grab offset origin).

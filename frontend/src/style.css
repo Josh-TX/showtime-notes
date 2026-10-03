@@ -34,3 +34,9 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+/* while a note is dragged, the grabbing cursor wins everywhere */
+body.note-dragging,
+body.note-dragging * {
+  cursor: grabbing !important;
+}

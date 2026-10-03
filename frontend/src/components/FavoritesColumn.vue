@@ -48,7 +48,13 @@ onMounted(() => (removeDropHandler = addNoteDropHandler(onDrop)))
 onBeforeUnmount(() => removeDropHandler?.())
 
 function onPress(e: PointerEvent, note: FavoriteNote): void {
-  beginNoteDrag(e, e.currentTarget as HTMLElement, { id: null, favoriteId: note.id, text: note.text, color: note.color })
+  beginNoteDrag(e, e.currentTarget as HTMLElement, {
+    id: null,
+    favoriteId: note.id,
+    text: note.text,
+    color: note.color,
+    trash: { label: 'delete from favorites', run: () => api.deleteFavorite(note.id) },
+  })
 }
 
 function isDragged(note: FavoriteNote): boolean {
@@ -67,7 +73,7 @@ function isDragged(note: FavoriteNote): boolean {
           class="fav"
           :text="note.text"
           :color="note.color"
-          :class="{ source: isDragged(note) }"
+          :source="isDragged(note)"
           @press="onPress($event, note)"
           @contextmenu.prevent="menu = { noteId: note.id, x: $event.clientX, y: $event.clientY }"
         />
@@ -101,9 +107,6 @@ function isDragged(note: FavoriteNote): boolean {
 .fav {
   max-width: 100%;
   flex: none;
-}
-.fav.source {
-  opacity: 0.4;
 }
 .insert-line {
   flex: none;

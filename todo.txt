@@ -4,5 +4,5 @@ autosync next song
 automatically start listening
 drag the position of auto-scroll. 
 acquire range
-favicon
+DONE: favicon
 help modal

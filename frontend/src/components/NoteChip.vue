@@ -3,15 +3,16 @@ import { NOTE_COLORS } from '../store/noteColors'
 import type { NoteColor } from '../types'
 
 // The note's look: colored left edge, uppercase text. The whole chip is the drag source (emits press).
+// source = dimmed copy left in place while its note is dragged; dragged = the slightly see-through note being carried.
 // Sizing/positioning is up to the parent.
-defineProps<{ text: string; color: NoteColor; dragging?: boolean; invalid?: boolean }>()
+defineProps<{ text: string; color: NoteColor; source?: boolean; dragged?: boolean }>()
 defineEmits<{ press: [e: PointerEvent] }>()
 </script>
 
 <template>
   <div
     class="note-chip"
-    :class="{ dragging, invalid }"
+    :class="{ source, dragged }"
     :style="{ borderColor: NOTE_COLORS[color] }"
     @pointerdown="$emit('press', $event)"
   >
@@ -44,15 +45,10 @@ defineEmits<{ press: [e: PointerEvent] }>()
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.note-chip.dragging {
-  cursor: grabbing;
+.note-chip.source {
+  opacity: 0.2;
 }
-.note-chip.invalid {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.note-chip.dragging {
-  box-shadow: 0 0 6px 1px rgba(0, 229, 255, 0.25);
-  z-index: 1;
+.note-chip.dragged {
+  opacity: 0.85;
 }
 </style>

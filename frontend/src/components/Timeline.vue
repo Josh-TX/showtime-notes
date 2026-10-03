@@ -183,8 +183,8 @@ function tick(): void {
 }
 
 // Direct user scroll input (wheel, touch, scrollbar drag) turns auto-scroll off; programmatic scrollLeft doesn't.
-function onUserScroll(event?: WheelEvent): void {
-  if (event && isZoomWheel(event)) return
+function onUserScroll(event?: Event): void {
+  if (event instanceof WheelEvent && isZoomWheel(event)) return
   autoScroll.value = false
 }
 function onContainerPointerDown(event: PointerEvent): void {

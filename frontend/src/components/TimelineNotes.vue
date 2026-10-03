@@ -18,7 +18,7 @@ const NOTE_HEIGHT = 32
 const BEAT_SNAP_RANGE_PX = 10
 
 const layer = ref<HTMLElement | null>(null)
-// Where the dragged note would land (last valid spot); only saved on release.
+// Where the dragged note would land; null when the pointer isn't over a valid spot. Only saved on release.
 const draft = ref<{ timeSeconds: number; y: number } | null>(null)
 const snapLineSeconds = ref<number | null>(null)
 const menu = ref<{ noteId: string; x: number; y: number } | null>(null)
@@ -55,9 +55,7 @@ function dropTarget(): { timeSeconds: number; y: number; snapped: boolean } | nu
 function frame(): void {
   const target = dropTarget()
   noteDrag.valid = target !== null
-  // an existing note stays at its last valid spot; a new one has no spot until it first lands on the timeline
-  if (target) draft.value = { timeSeconds: target.timeSeconds, y: target.y }
-  else if (noteDrag.item?.id === null) draft.value = null
+  draft.value = target && { timeSeconds: target.timeSeconds, y: target.y }
   snapLineSeconds.value = target?.snapped ? target.timeSeconds : null
   frameHandle = requestAnimationFrame(frame)
 }
@@ -101,7 +99,15 @@ onBeforeUnmount(() => {
 
 function onPress(e: PointerEvent, note: TimelineNote): void {
   const noteEl = e.currentTarget as HTMLElement
-  beginNoteDrag(e, noteEl, { id: note.id, text: note.text, color: note.color })
+  beginNoteDrag(e, noteEl, {
+    id: note.id,
+    text: note.text,
+    color: note.color,
+    trash: {
+      label: 'delete from timeline',
+      run: () => store.selectedSong && api.deleteTimelineNote(store.selectedSong.id, note.id),
+    },
+  })
 }
 
 function onContextMenu(e: MouseEvent, note: TimelineNote): void {
@@ -110,14 +116,6 @@ function onContextMenu(e: MouseEvent, note: TimelineNote): void {
 
 function isDragged(note: TimelineNote): boolean {
   return noteDrag.active && noteDrag.item?.id === note.id
-}
-
-function noteTimeSeconds(note: TimelineNote): number {
-  return isDragged(note) && draft.value ? draft.value.timeSeconds : note.timeSeconds
-}
-
-function noteY(note: TimelineNote): number {
-  return isDragged(note) && draft.value ? draft.value.y : note.y
 }
 
 function left(seconds: number): number {
@@ -134,19 +132,18 @@ function left(seconds: number): number {
       :class="{ 'menu-open': menu?.noteId === note.id }"
       :text="note.text"
       :color="note.color"
-      :dragging="isDragged(note)"
-      :invalid="isDragged(note) && !noteDrag.valid"
-      :style="{ left: `${left(noteTimeSeconds(note))}px`, top: `${noteY(note)}px` }"
+      :source="isDragged(note)"
+      :style="{ left: `${left(note.timeSeconds)}px`, top: `${note.y}px` }"
       @press="onPress($event, note)"
       @contextmenu.prevent="onContextMenu($event, note)"
     />
-    <!-- preview of a not-yet-created note while it hovers a valid spot -->
+    <!-- preview of the dragged note (any source) while it hovers a valid spot -->
     <NoteChip
-      v-if="noteDrag.active && noteDrag.item?.id === null && draft"
+      v-if="noteDrag.active && noteDrag.item && draft"
       class="timeline-note preview"
+      dragged
       :text="noteDrag.item.text"
       :color="noteDrag.item.color"
-      dragging
       :style="{ left: `${left(draft.timeSeconds)}px`, top: `${draft.y}px` }"
     />
     <div

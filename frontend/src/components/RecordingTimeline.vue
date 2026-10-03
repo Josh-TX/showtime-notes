@@ -74,8 +74,8 @@ watch(followLive, scrollToLive)
 
 // Programmatic scrolls don't fire these, so any of them means the user took over. Pointer-down only counts on
 // the container itself (its scrollbar), so clicking the timeline keeps following.
-function stopFollowing(event?: WheelEvent): void {
-  if (event && isZoomWheel(event)) return
+function stopFollowing(event?: Event): void {
+  if (event instanceof WheelEvent && isZoomWheel(event)) return
   followLive.value = false
 }
 

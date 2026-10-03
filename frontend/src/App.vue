@@ -5,6 +5,7 @@ import SongMenu from './components/SongMenu.vue'
 import SongPanel from './components/SongPanel.vue'
 import Timeline from './components/Timeline.vue'
 import RecordingTimeline from './components/RecordingTimeline.vue'
+import DragGhost from './components/DragGhost.vue'
 import CandidatesPanel from './components/CandidatesPanel.vue'
 import { useShowStore } from './store/show'
 import { clientSettings, setDeviceName } from './store/clientSettings'
@@ -42,6 +43,7 @@ function join(): void {
       <Timeline v-else />
     </div>
     <CandidatesPanel />
+    <DragGhost />
   </div>
 </template>
 
