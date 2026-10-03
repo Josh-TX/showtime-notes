@@ -181,9 +181,9 @@ function left(seconds: number): number {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: #6b4709;
+  background: #4d3306;
   opacity: 0.8;
-  box-shadow: 0 0 6px #6b4709;
+  box-shadow: 0 0 6px #4d3306;
 }
 .snap-line.downbeat {
   background: #d9971a;

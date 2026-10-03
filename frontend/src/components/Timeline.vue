@@ -432,21 +432,21 @@ onUnmounted(() => {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #fff;
+  background: #3ecf5f;
   z-index: 3;
 }
 </style>
 <style scoped>
 .seekbar {
   position: absolute;
-  background: rgba(160, 80, 255, 0.22);
+  background: rgba(153, 82, 255, 0.22);
   z-index: 4;
   cursor: pointer;
   touch-action: none;
 }
 .seekbar-fill {
   height: 100%;
-  background: rgb(160, 80, 255);
+  background: rgb(153, 82, 255);
   pointer-events: none;
 }
 .playback-bar {
@@ -454,7 +454,7 @@ onUnmounted(() => {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgb(160, 80, 255);
+  background: rgb(153, 82, 255);
   z-index: 3;
   pointer-events: none;
 }

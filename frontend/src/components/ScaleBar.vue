@@ -37,12 +37,12 @@ const barWidthPx = computed(() => (unit.value / 1000) * props.pixelsPerSecond)
   pointer-events: none;
   font-size: 12px;
   line-height: 1;
-  color: #fff;
+  color: #9a9a9f;
   text-shadow: 0 0 3px #000, 0 0 3px #000;
 }
 .bar {
   height: 6px;
-  border: 2px solid #fff;
+  border: 2px solid #9a9a9f;
   border-top: none;
   box-sizing: border-box;
   filter: drop-shadow(0 0 2px #000);

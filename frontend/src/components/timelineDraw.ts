@@ -4,10 +4,10 @@ import type { Waveform } from '../types'
 export const PEAKS_PER_SECOND = 30
 export const WAVEFORM_LANE_HEIGHT = 120
 const NORMAL_BEAT_ALPHA = 0.08
-const DOWNBEAT_ALPHA = 0.25
+const DOWNBEAT_ALPHA = 0.23
 // opaque equivalents of #4a9eff / #7a7a7a at 50% over the #050506 background
-const VOCALS_COLOR = '#285283'
-const NOVOCALS_COLOR = '#404040'
+const VOCALS_COLOR = '#44536a'
+const NOVOCALS_COLOR = '#464240'
 const LOUDNESS_COLOR = '#4d4d5a'
 // bars drawn slightly wider than their spacing so neighbors overlap (opaque, so no gaps or alpha buildup)
 const WAVEFORM_BAR_WIDTH_SCALE = 1.3
