@@ -16,8 +16,11 @@ export const songPlayer = reactive({
 const audio = new Audio()
 audio.preload = 'auto'
 
+// Visual-only position glide after a seek (audio itself jumps immediately)
+let glide: { from: number; to: number; start: number; ms: number } | null = null
+
 audio.addEventListener('timeupdate', () => {
-  songPlayer.position = audio.currentTime
+  if (!glide) songPlayer.position = audio.currentTime
 })
 audio.addEventListener('ended', () => {
   songPlayer.playing = false
@@ -31,7 +34,11 @@ audio.addEventListener('play', () => {
 
 // rAF-smooth position while playing (timeupdate only fires ~4Hz)
 function poll(): void {
-  if (songPlayer.playing) songPlayer.position = audio.currentTime
+  if (glide) {
+    const t = Math.min(1, (performance.now() - glide.start) / glide.ms)
+    songPlayer.position = glide.from + (glide.to - glide.from) * t
+    if (t >= 1) glide = null
+  } else if (songPlayer.playing) songPlayer.position = audio.currentTime
   requestAnimationFrame(poll)
 }
 requestAnimationFrame(poll)
@@ -47,6 +54,7 @@ function load(songId: string, stem: Stem, position: number, resume: boolean): vo
 }
 
 export function playerStop(): void {
+  glide = null
   audio.pause()
   audio.removeAttribute('src')
   audio.load()
@@ -71,8 +79,10 @@ export function playerPause(): void {
   audio.pause()
 }
 
-export function playerSeek(songId: string, seconds: number): void {
-  songPlayer.position = seconds
+export function playerSeek(songId: string, seconds: number, smoothMs = 0): void {
+  const sameSong = songPlayer.songId === songId
+  glide = smoothMs > 0 && sameSong ? { from: songPlayer.position, to: seconds, start: performance.now(), ms: smoothMs } : null
+  if (!glide) songPlayer.position = seconds
   if (songPlayer.songId !== songId) {
     songPlayer.songId = songId
     load(songId, songPlayer.stem, seconds, false)

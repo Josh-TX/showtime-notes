@@ -220,6 +220,19 @@ function togglePlay(): void {
   else playerPlay(id)
 }
 
+function seekForward(): void {
+  const id = store.selectedSong?.id
+  if (!id) return
+  const max = durationSeconds.value > 0 ? durationSeconds.value : Infinity
+  playerSeek(id, Math.min(max, songPlayer.position + 5), 100)
+}
+
+function seekBackward(): void {
+  const id = store.selectedSong?.id
+  if (!id) return
+  playerSeek(id, Math.max(0, songPlayer.position - 5), 100)
+}
+
 function isSpaceToggle(event: KeyboardEvent): boolean {
   if (event.code !== 'Space' || event.ctrlKey || event.metaKey || event.altKey) return false
   const el = event.target as HTMLElement | null
@@ -305,6 +318,20 @@ onUnmounted(() => {
       <div v-if="playbackVisible" class="playback-controls">
         <button
           type="button"
+          class="seek-btn"
+          aria-label="seek backward 5 seconds"
+          @click="seekBackward"
+        >
+          <svg viewBox="0 0 24 24" class="seek-icon" aria-hidden="true">
+            <g transform="translate(24 0) scale(-1 1) rotate(45 12 13)">
+              <path d="M20 13A8 8 0 1 1 12 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M15 5L12 8V2z" fill="currentColor" />
+            </g>
+            <text x="10" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor">−5</text>
+          </svg>
+        </button>
+        <button
+          type="button"
           class="play-btn"
           :aria-label="songPlayer.playing ? 'pause' : 'play'"
           @click="togglePlay"
@@ -312,6 +339,20 @@ onUnmounted(() => {
           <svg viewBox="0 0 24 24" class="play-icon" aria-hidden="true">
             <path v-if="songPlayer.playing" d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" />
             <path v-else d="M8 5v14l11-7z" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="seek-btn"
+          aria-label="seek forward 5 seconds"
+          @click="seekForward"
+        >
+          <svg viewBox="0 0 24 24" class="seek-icon" aria-hidden="true">
+            <g transform="rotate(45 12 13)">
+              <path d="M20 13A8 8 0 1 1 12 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              <path d="M15 5L12 8V2z" fill="currentColor" />
+            </g>
+            <text x="11" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor">+5</text>
           </svg>
         </button>
         <RadioButtonGroup
@@ -518,6 +559,24 @@ onUnmounted(() => {
 }
 .play-btn:active {
   transform: scale(0.95);
+}
+.seek-btn {
+  display: flex;
+  padding: 0;
+  color: rgb(133, 74, 209);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.seek-btn:hover {
+  color: rgb(153, 94, 229);
+}
+.seek-btn:active {
+  transform: scale(0.92);
+}
+.seek-icon {
+  width: 2.2rem;
+  height: 2.2rem;
 }
 .play-icon {
   width: 1.2rem;
