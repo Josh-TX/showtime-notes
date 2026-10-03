@@ -118,8 +118,8 @@ MAX_NOTE_TEXT_LENGTH = 200
 
 def _clean_note_text(text: str) -> str:
     text = text.strip()
-    if not text or len(text) > MAX_NOTE_TEXT_LENGTH:
-        raise HTTPException(400, f"note text must be 1-{MAX_NOTE_TEXT_LENGTH} characters")
+    if len(text) > MAX_NOTE_TEXT_LENGTH:
+        raise HTTPException(400, f"note text must be at most {MAX_NOTE_TEXT_LENGTH} characters")
     return text
 
 

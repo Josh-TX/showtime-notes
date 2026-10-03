@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
 import { beginNoteDrag, noteDrag, addNoteDropHandler } from '../store/noteDrag'
 import NoteChip from './NoteChip.vue'
 import NoteContextMenu from './NoteContextMenu.vue'
+import { noteEdit, type NotePlace } from '../store/noteEdit'
 import type { TimelineNote } from '../types'
 
 // Notes overlaid on a timeline whose t=0 sits at startWidthPx; also the drop target for note drags.
@@ -21,7 +22,7 @@ const layer = ref<HTMLElement | null>(null)
 // Where the dragged note would land; null when the pointer isn't over a valid spot. Only saved on release.
 const draft = ref<{ timeSeconds: number; y: number } | null>(null)
 const snapLineSeconds = ref<number | null>(null)
-const menu = ref<{ noteId: string; x: number; y: number } | null>(null)
+const menu = ref<{ noteId: string | null; place?: NotePlace; x: number; y: number } | null>(null)
 let frameHandle = 0
 
 function snapToBeat(seconds: number): { seconds: number; snapped: boolean } {
@@ -91,9 +92,13 @@ watch(
 )
 
 let removeDropHandler: (() => void) | undefined
-onMounted(() => (removeDropHandler = addNoteDropHandler(onDrop)))
+onMounted(() => {
+  removeDropHandler = addNoteDropHandler(onDrop)
+  layer.value?.parentElement?.addEventListener('contextmenu', onTimelineContextMenu)
+})
 onBeforeUnmount(() => {
   removeDropHandler?.()
+  layer.value?.parentElement?.removeEventListener('contextmenu', onTimelineContextMenu)
   cancelAnimationFrame(frameHandle)
 })
 
@@ -114,9 +119,29 @@ function onContextMenu(e: MouseEvent, note: TimelineNote): void {
   menu.value = { noteId: note.id, x: e.clientX, y: e.clientY }
 }
 
+// Right-click on empty timeline: new note whose left edge is at the click (no beat snapping).
+function onTimelineContextMenu(e: MouseEvent): void {
+  if (e.defaultPrevented) return // a note handled it
+  e.preventDefault()
+  const rect = layer.value?.getBoundingClientRect()
+  if (!rect || !store.selectedSong || noteDrag.active) return
+  const timeSeconds = (e.clientX - rect.left - props.startWidthPx) / props.pixelsPerSecond
+  if (timeSeconds < 0 || timeSeconds > store.maxNoteSeconds) return
+  const y = Math.min(Math.max(e.clientY - rect.top - NOTE_HEIGHT / 2, 0), rect.height - NOTE_HEIGHT)
+  // menu sits just below the draft chip so the chip stays visible
+  menu.value = { noteId: null, place: { timeSeconds, y }, x: e.clientX, y: rect.top + y + NOTE_HEIGHT + 1 }
+}
+
 function isDragged(note: TimelineNote): boolean {
   return noteDrag.active && noteDrag.item?.id === note.id
 }
+
+const draftEdit = computed(() => {
+  const place = noteEdit.place
+  if (noteEdit.kind !== 'timeline' || !noteEdit.isNew || !place || !('timeSeconds' in place)) return null
+  const created = store.selectedSong?.timelineNotes.some((n) => n.id === noteEdit.noteId)
+  return created ? null : place
+})
 
 function left(seconds: number): number {
   return props.startWidthPx + seconds * props.pixelsPerSecond
@@ -130,12 +155,20 @@ function left(seconds: number): number {
       :key="note.id"
       class="timeline-note"
       :class="{ 'menu-open': menu?.noteId === note.id }"
-      :text="note.text"
-      :color="note.color"
+      :text="noteEdit.kind === 'timeline' && noteEdit.noteId === note.id ? noteEdit.text : note.text"
+      :color="noteEdit.kind === 'timeline' && noteEdit.noteId === note.id ? noteEdit.color : note.color"
       :source="isDragged(note)"
       :style="{ left: `${left(note.timeSeconds)}px`, top: `${note.y}px` }"
       @press="onPress($event, note)"
       @contextmenu.prevent="onContextMenu($event, note)"
+    />
+    <!-- unsaved new note being typed in the context menu -->
+    <NoteChip
+      v-if="draftEdit"
+      class="timeline-note menu-open"
+      :text="noteEdit.text"
+      :color="noteEdit.color"
+      :style="{ left: `${left(draftEdit.timeSeconds)}px`, top: `${draftEdit.y}px` }"
     />
     <!-- preview of the dragged note (any source) while it hovers a valid spot -->
     <NoteChip
@@ -167,7 +200,7 @@ function left(seconds: number): number {
   pointer-events: auto;
 }
 .notes-layer > .timeline-note.menu-open {
-  box-shadow: 0 0 6px 1px rgba(0, 229, 255, 0.25);
+  box-shadow: 0 0 8px 2px rgba(0, 229, 255, 0.4);
 }
 .notes-layer > .timeline-note.preview {
   pointer-events: none;

@@ -4,6 +4,7 @@ import { api } from '../api'
 import { addNoteDropHandler, beginNoteDrag, noteDrag } from '../store/noteDrag'
 import NoteChip from './NoteChip.vue'
 import NoteContextMenu from './NoteContextMenu.vue'
+import { noteEdit, type NotePlace } from '../store/noteEdit'
 import type { FavoriteNote } from '../types'
 
 // One scrollable column of favorites: a drop target (insert at the pointer) and a drag source (reorder, or onto
@@ -12,7 +13,7 @@ const props = defineProps<{ title: string; column: number; notes: FavoriteNote[]
 
 const scroller = ref<HTMLElement | null>(null)
 const chipEls = ref<HTMLElement[]>([])
-const menu = ref<{ noteId: string; x: number; y: number } | null>(null)
+const menu = ref<{ noteId: string | null; place?: NotePlace; x: number; y: number } | null>(null)
 
 // Insertion index (into props.notes) if dropped at the pointer, or null when the pointer is outside this column.
 const hoverIndex = computed<number | null>(() => {
@@ -57,6 +58,25 @@ function onPress(e: PointerEvent, note: FavoriteNote): void {
   })
 }
 
+// Right-click on empty column space: new favorite inserted at the pointer.
+function onColumnContextMenu(e: MouseEvent): void {
+  if (e.defaultPrevented) return // a favorite handled it
+  e.preventDefault()
+  const index = chipEls.value.slice(0, props.notes.length).findIndex((el) => e.clientY < el.getBoundingClientRect().top + el.getBoundingClientRect().height / 2)
+  menu.value = { noteId: null, place: { column: props.column, index: index === -1 ? props.notes.length : index }, x: e.clientX, y: e.clientY }
+}
+
+// Unsaved new favorite being typed in the context menu, shown at its insertion index.
+const draftIndex = computed<number | null>(() => {
+  const place = noteEdit.place
+  if (noteEdit.kind !== 'favorite' || !noteEdit.isNew || !place || !('column' in place) || place.column !== props.column) return null
+  return props.notes.some((n) => n.id === noteEdit.noteId) ? null : Math.min(place.index, props.notes.length)
+})
+
+function isEditing(note: FavoriteNote): boolean {
+  return noteEdit.kind === 'favorite' && noteEdit.noteId === note.id
+}
+
 function isDragged(note: FavoriteNote): boolean {
   return noteDrag.active && noteDrag.item?.favoriteId === note.id
 }
@@ -65,20 +85,23 @@ function isDragged(note: FavoriteNote): boolean {
 <template>
   <div class="favorites-column">
     <h4>{{ title }}</h4>
-    <div ref="scroller" class="scroller" :class="{ hovered: hoverIndex !== null }">
+    <div ref="scroller" class="scroller" :class="{ hovered: hoverIndex !== null }" @contextmenu="onColumnContextMenu">
       <template v-for="(note, i) in notes" :key="note.id">
         <div v-if="hoverIndex === i" class="insert-line" />
+        <NoteChip v-if="draftIndex === i" class="fav menu-open" :text="noteEdit.text" :color="noteEdit.color" />
         <NoteChip
           :ref="(c) => (chipEls[i] = (c as any)?.$el)"
           class="fav"
-          :text="note.text"
-          :color="note.color"
+          :class="{ 'menu-open': menu?.noteId === note.id }"
+          :text="isEditing(note) ? noteEdit.text : note.text"
+          :color="isEditing(note) ? noteEdit.color : note.color"
           :source="isDragged(note)"
           @press="onPress($event, note)"
           @contextmenu.prevent="menu = { noteId: note.id, x: $event.clientX, y: $event.clientY }"
         />
       </template>
       <div v-if="hoverIndex === notes.length" class="insert-line" />
+      <NoteChip v-if="draftIndex === notes.length" class="fav menu-open" :text="noteEdit.text" :color="noteEdit.color" />
     </div>
     <NoteContextMenu v-if="menu" kind="favorite" v-bind="menu" @close="menu = null" />
   </div>
@@ -107,6 +130,9 @@ function isDragged(note: FavoriteNote): boolean {
 .fav {
   max-width: 100%;
   flex: none;
+}
+.fav.menu-open {
+  box-shadow: 0 0 8px 2px rgba(0, 229, 255, 0.4);
 }
 .insert-line {
   flex: none;

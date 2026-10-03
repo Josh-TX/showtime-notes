@@ -170,7 +170,7 @@ function tick(): void {
   if (frame.scrollPosition !== null && containerEl.value) {
     containerEl.value.scrollLeft = frame.scrollPosition * pps
   } else if (playbackVisible.value && autoScroll.value && containerEl.value) {
-    const targetPx = songPlayer.position * pps
+    const targetPx = playbackPosition.value * pps
     let px = targetPx
     if (seekScroll) {
       const t = (nowMs - seekScroll.startMs) / SEEK_SCROLL_MS
@@ -212,6 +212,11 @@ const speedLabel = computed(() => `${songPlayer.speed}x` as (typeof SPEEDS)[numb
 const playbackAllowed = computed(() => store.selectedSong?.status === 'ready')
 const playbackVisible = playbackAllowed
 const seekFraction = computed(() => (durationSeconds.value > 0 ? Math.min(1, songPlayer.position / durationSeconds.value) : 0))
+
+// Never draw/scroll past the timeline end, whatever the audio element reports
+const playbackPosition = computed(() =>
+  durationSeconds.value > 0 ? Math.min(durationSeconds.value, songPlayer.position) : songPlayer.position,
+)
 
 function togglePlay(): void {
   const id = store.selectedSong?.id
@@ -433,7 +438,7 @@ onUnmounted(() => {
           <div
             v-if="playbackVisible"
             class="playback-bar"
-            :style="{ left: `${positionToLeft(songPlayer.position)}px` }"
+            :style="{ left: `${positionToLeft(playbackPosition)}px` }"
           />
           <div
             v-for="(bar, i) in positionBars"

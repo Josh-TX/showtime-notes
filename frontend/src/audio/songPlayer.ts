@@ -24,6 +24,8 @@ audio.addEventListener('timeupdate', () => {
 })
 audio.addEventListener('ended', () => {
   songPlayer.playing = false
+  glide = null
+  songPlayer.position = audio.currentTime
 })
 audio.addEventListener('pause', () => {
   songPlayer.playing = false
@@ -63,6 +65,10 @@ export function playerStop(): void {
   songPlayer.position = 0
 }
 
+function atEnd(): boolean {
+  return Number.isFinite(audio.duration) && audio.currentTime >= audio.duration - 0.05
+}
+
 export function playerPlay(songId: string): void {
   if (songPlayer.songId !== songId) {
     songPlayer.songId = songId
@@ -71,7 +77,7 @@ export function playerPlay(songId: string): void {
     return
   }
   // restart from 0 after reaching the end
-  if (audio.ended) audio.currentTime = 0
+  if (atEnd()) audio.currentTime = 0
   void audio.play()
 }
 
@@ -89,6 +95,11 @@ export function playerSeek(songId: string, seconds: number, smoothMs = 0): void 
     return
   }
   audio.currentTime = seconds
+  // seeking to the end stops playback there
+  if (atEnd()) {
+    audio.pause()
+    if (!glide) songPlayer.position = audio.currentTime
+  }
 }
 
 export function playerSetStem(stem: Stem): void {

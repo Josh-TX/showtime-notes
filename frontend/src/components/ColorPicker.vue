@@ -24,12 +24,12 @@ defineEmits<{ 'update:modelValue': [color: NoteColor] }>()
 <style scoped>
 .color-picker {
   display: grid;
-  grid-template-columns: repeat(5, 20px);
+  grid-template-columns: repeat(8, 18px);
   gap: 6px;
 }
 .swatch {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   padding: 0;
   border: none;
   border-radius: 3px;

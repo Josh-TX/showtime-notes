@@ -20,7 +20,36 @@ class SongStatus(str, Enum):
     SYNCING = "syncing"  # this song is the sync target; see SyncState.phase for acquiring vs. tracking
 
 
-NoteColor = Literal["red", "blue", "orange", "yellow", "green", "pink", "brown", "white", "gray", "purple"]
+NoteColor = Literal[
+    "light-red",
+    "light-orange",
+    "light-yellow",
+    "light-green",
+    "light-blue",
+    "light-purple",
+    "light-pink",
+    "white",
+    "gray",
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "blue",
+    "purple",
+    "pink",
+    "light-gray",
+    "dark-gray",
+    "dark-red",
+    "dark-orange",
+    "dark-yellow",
+    "dark-green",
+    "dark-blue",
+    "dark-purple",
+    "dark-pink",
+    "silver",
+    "black",
+    "brown",
+]
 
 
 class TimelineNote(ApiModel):
