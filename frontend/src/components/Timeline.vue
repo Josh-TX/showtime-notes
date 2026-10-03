@@ -2,8 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
 import { clientSettings } from '../store/clientSettings'
-import { playerPause, playerPlay, playerSeek, playerSetDoubleSpeed, playerSetStem, playerStop, songPlayer, type Stem } from '../audio/songPlayer'
-import CheckboxInput from './CheckboxInput.vue'
+import { playerPause, playerPlay, playerSeek, playerSetSpeed, playerSetStem, playerStop, songPlayer, type PlayerSpeed, type Stem } from '../audio/songPlayer'
 import RadioButtonGroup from './RadioButtonGroup.vue'
 import TimelineNotes from './TimelineNotes.vue'
 import { PositionSmoother, type BarState } from './smoothing'
@@ -205,16 +204,13 @@ const SEEK_SCROLL_MS = 200
 let seekScroll: { startPx: number; startMs: number } | null = null
 const SEEKBAR_BOTTOM = 20
 const STEMS: Stem[] = ['original', 'vocals', 'novocals']
+const SPEEDS = ['1x', '2x', '3x', '4x'] as const
+const stem = computed(() => songPlayer.stem)
+const speedLabel = computed(() => `${songPlayer.speed}x` as (typeof SPEEDS)[number])
 
-// Playback is only allowed on ready songs; otherwise the checkbox shows off+disabled without touching the setting.
+// Playback is only available on ready songs (so never while syncing)
 const playbackAllowed = computed(() => store.selectedSong?.status === 'ready')
-const playbackChecked = computed({
-  get: () => playbackAllowed.value && clientSettings.playbackEnabled,
-  set: (v: boolean) => {
-    clientSettings.playbackEnabled = v
-  },
-})
-const playbackVisible = computed(() => playbackChecked.value)
+const playbackVisible = playbackAllowed
 const seekFraction = computed(() => (durationSeconds.value > 0 ? Math.min(1, songPlayer.position / durationSeconds.value) : 0))
 
 function togglePlay(): void {
@@ -222,6 +218,24 @@ function togglePlay(): void {
   if (!id) return
   if (songPlayer.playing) playerPause()
   else playerPlay(id)
+}
+
+function isSpaceToggle(event: KeyboardEvent): boolean {
+  if (event.code !== 'Space' || event.ctrlKey || event.metaKey || event.altKey) return false
+  const el = event.target as HTMLElement | null
+  if (el?.closest('input:not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable]')) return false
+  return playbackVisible.value
+}
+
+function onKeyDown(event: KeyboardEvent): void {
+  if (!isSpaceToggle(event)) return
+  event.preventDefault() // also stops page scroll / focused-button activation
+  if (!event.repeat) togglePlay()
+}
+
+// Space on a focused button fires click on keyup; swallow it so it doesn't double-toggle
+function onKeyUp(event: KeyboardEvent): void {
+  if (isSpaceToggle(event)) event.preventDefault()
 }
 
 function seekFromEvent(event: PointerEvent): void {
@@ -249,8 +263,9 @@ watch(() => store.selectedSong?.id, () => {
 watch(playbackAllowed, (ok) => {
   if (!ok) playerStop()
 })
-watch(playbackVisible, (v) => {
-  if (!v) playerPause()
+// Re-enabling auto-scroll eases from the current scroll to the playback position instead of snapping
+watch(autoScroll, (on) => {
+  if (on && containerEl.value) seekScroll = { startPx: containerEl.value.scrollLeft, startMs: Date.now() }
 })
 watch(pixelsPerSecond, () => nextTick(refreshLayout))
 watch(
@@ -269,8 +284,12 @@ onMounted(() => {
   resizeObserver = new ResizeObserver(refreshLayout)
   if (containerEl.value) resizeObserver.observe(containerEl.value)
   rafId = requestAnimationFrame(tick)
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('keyup', onKeyUp)
 })
 onUnmounted(() => {
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('keyup', onKeyUp)
   resizeObserver?.disconnect()
   cancelAnimationFrame(rafId)
 })
@@ -279,23 +298,37 @@ onUnmounted(() => {
 <template>
   <div class="timeline-wrap">
     <div class="timeline-toolbar">
-      <CheckboxInput v-model="autoScroll" label="auto-scroll" font-size="1rem" />
-      <CheckboxInput v-model="playbackChecked" label="playback" font-size="1rem" :disabled="!playbackAllowed" />
-      <template v-if="playbackVisible">
-        <button type="button" @click="togglePlay">{{ songPlayer.playing ? 'pause' : 'play' }}</button>
-        <CheckboxInput
-          :model-value="songPlayer.doubleSpeed"
-          label="2x speed"
-          font-size="1rem"
-          @update:model-value="playerSetDoubleSpeed"
-        />
+      <label class="auto-scroll">
+        <input type="checkbox" v-model="autoScroll" />
+        auto-scroll
+      </label>
+      <div v-if="playbackVisible" class="playback-controls">
+        <button
+          type="button"
+          class="play-btn"
+          :aria-label="songPlayer.playing ? 'pause' : 'play'"
+          @click="togglePlay"
+        >
+          <svg viewBox="0 0 24 24" class="play-icon" aria-hidden="true">
+            <path v-if="songPlayer.playing" d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor" />
+            <path v-else d="M8 5v14l11-7z" fill="currentColor" />
+          </svg>
+        </button>
         <RadioButtonGroup
-          :model-value="songPlayer.stem"
+          :model-value="stem"
           :options="STEMS"
-          font-size="1rem"
+          font-size="1.1rem"
+          accent="rgb(133, 74, 209)"
           @update:model-value="playerSetStem"
         />
-      </template>
+        <RadioButtonGroup
+          :model-value="speedLabel"
+          :options="SPEEDS"
+          font-size="1.1rem"
+          accent="rgb(133, 74, 209)"
+          @update:model-value="(v) => playerSetSpeed(parseInt(v) as PlayerSpeed)"
+        />
+      </div>
     </div>
     <div class="timeline-outer">
       <div
@@ -381,7 +414,10 @@ onUnmounted(() => {
   height: 100%;
 }
 .timeline-toolbar {
-  padding: 0.2rem 0.6rem;
+  flex: none;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 0.6rem;
   font-size: 0.8rem;
   border-bottom: 1px solid #2a2a2a;
   display: flex;
@@ -433,20 +469,20 @@ onUnmounted(() => {
   bottom: 0;
   width: 1px;
   background: #3ecf5f;
-  z-index: 3;
+  z-index: 6;
 }
 </style>
 <style scoped>
 .seekbar {
   position: absolute;
-  background: rgba(153, 82, 255, 0.22);
+  background: rgba(133, 74, 209, 0.22);
   z-index: 4;
   cursor: pointer;
   touch-action: none;
 }
 .seekbar-fill {
   height: 100%;
-  background: rgb(153, 82, 255);
+  background: rgb(133, 74, 209);
   pointer-events: none;
 }
 .playback-bar {
@@ -454,8 +490,56 @@ onUnmounted(() => {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgb(153, 82, 255);
-  z-index: 3;
+  background: rgb(133, 74, 209);
+  z-index: 6;
   pointer-events: none;
+}
+.playback-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0;
+  color: #fff;
+  background: rgb(133, 74, 209);
+  border: 0;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.play-btn:hover {
+  background: rgb(153, 94, 229);
+}
+.play-btn:active {
+  transform: scale(0.95);
+}
+.play-icon {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+.play-btn {
+  width: 3.6rem;
+  height: 1.8rem;
+  border-radius: 999px;
+}
+.auto-scroll {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  user-select: none;
+}
+.auto-scroll input {
+  width: 1.3rem;
+  height: 1.3rem;
+  margin: 0;
+  cursor: pointer;
 }
 </style>

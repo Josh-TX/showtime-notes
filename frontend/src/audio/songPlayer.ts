@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { api } from '../api'
 
+export type PlayerSpeed = 1 | 2 | 3 | 4
 export type Stem = 'original' | 'vocals' | 'novocals'
 
 // Client-local song playback (not server state). One <audio> element, source swapped per song/stem.
@@ -9,7 +10,7 @@ export const songPlayer = reactive({
   stem: 'original' as Stem,
   playing: false,
   position: 0,
-  doubleSpeed: false,
+  speed: 1 as PlayerSpeed,
 })
 
 const audio = new Audio()
@@ -87,9 +88,9 @@ export function playerSetStem(stem: Stem): void {
   load(songPlayer.songId, stem, audio.currentTime, songPlayer.playing)
 }
 
-export function playerSetDoubleSpeed(on: boolean): void {
-  songPlayer.doubleSpeed = on
+export function playerSetSpeed(speed: PlayerSpeed): void {
+  songPlayer.speed = speed
   // defaultPlaybackRate survives src reloads (stem switch / song change); playbackRate alone is reset by load()
-  audio.defaultPlaybackRate = on ? 2 : 1
-  audio.playbackRate = on ? 2 : 1
+  audio.defaultPlaybackRate = speed
+  audio.playbackRate = speed
 }

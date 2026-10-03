@@ -2,12 +2,13 @@
 defineProps<{
   options: readonly T[]
   fontSize?: string
+  accent?: string
 }>()
 const model = defineModel<T>({ required: true })
 </script>
 
 <template>
-  <div class="radio-button-group" role="radiogroup" :style="{ fontSize: fontSize ?? '1rem' }">
+  <div class="radio-button-group" role="radiogroup" :style="{ fontSize: fontSize ?? '1rem', '--accent': accent ?? '#3b82f6' }">
     <button
       v-for="option in options"
       :key="option"
@@ -45,6 +46,6 @@ button:hover {
   background: #26272c;
 }
 button.selected {
-  border-bottom-color: #3b82f6;
+  border-bottom-color: var(--accent);
 }
 </style>

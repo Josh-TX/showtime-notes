@@ -32,16 +32,21 @@ export function useTimelineZoom(options: ZoomOptions): void {
   function zoomTo(seconds: number, focalX: number): void {
     const el = options.containerEl.value
     if (!el) return
-    if (!pending && !options.scrollIsDriven()) {
+    const capture = !pending && !options.scrollIsDriven()
+    if (capture) {
       const time = (el.scrollLeft + focalX - options.startWidthPx()) / options.pixelsPerSecond()
       pending = { time, focalX }
+    }
+    setTimelineWidthSeconds(seconds)
+    // Must be queued after the setting changes: nextTick then waits for the render flush that resizes the
+    // timeline. Queued before, it ran against the old DOM width and the browser clamped scrollLeft near the edges.
+    if (capture) {
       nextTick(() => {
         if (!pending) return
         el.scrollLeft = options.startWidthPx() + pending.time * options.pixelsPerSecond() - pending.focalX
         pending = null
       })
     }
-    setTimelineWidthSeconds(seconds)
   }
 
   function focalXFor(clientX: number): number {
