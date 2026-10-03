@@ -1,0 +1,8 @@
+toggle debug during sync
+right-click to add timeline-note
+autosync next song
+automatically start listening
+drag the position of auto-scroll. 
+acquire range
+favicon
+help modal
