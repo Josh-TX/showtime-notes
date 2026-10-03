@@ -61,6 +61,7 @@ function onOffset(e: Event): void {
                   type="number"
                   :min="SETTING_LIMITS.timelineWidthSeconds.min"
                   :max="SETTING_LIMITS.timelineWidthSeconds.max"
+                  step="0.01"
                   :value="clientSettings.timelineWidthSeconds"
                   @change="onTimelineWidth"
                 />

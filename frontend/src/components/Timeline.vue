@@ -7,6 +7,8 @@ import CheckboxInput from './CheckboxInput.vue'
 import RadioButtonGroup from './RadioButtonGroup.vue'
 import TimelineNotes from './TimelineNotes.vue'
 import { PositionSmoother, type BarState } from './smoothing'
+import ScaleBar from './ScaleBar.vue'
+import { isZoomWheel, useTimelineZoom } from './useTimelineZoom'
 import { PEAKS_PER_SECOND, computeTiles, drawWaveformTile, prepareTile } from './timelineDraw'
 
 const CONFIDENCE_BAR_ALPHA = 0.7
@@ -26,6 +28,7 @@ const trackingBarsCanvas = ref<HTMLCanvasElement | null>(null)
 
 const viewportWidthPx = ref(400)
 const viewportHeightPx = ref(200)
+const scrollbarHeightPx = ref(0)
 const autoScroll = ref(true)
 const displayPosition = ref<number | null>(null)
 const positionBars = ref<BarState[]>([])
@@ -146,6 +149,8 @@ function drawTrackingConfidenceBars(): void {
 function refreshLayout(): void {
   viewportWidthPx.value = containerEl.value?.clientWidth ?? 400
   viewportHeightPx.value = containerEl.value?.clientHeight ?? 200
+  // 0 for overlay scrollbars; measured so the scale bar clears whatever the platform draws
+  scrollbarHeightPx.value = containerEl.value ? containerEl.value.offsetHeight - containerEl.value.clientHeight : 0
   drawWaveform()
   drawAcquiringConfidenceBars()
   drawTrackingConfidenceBars()
@@ -179,13 +184,21 @@ function tick(): void {
 }
 
 // Direct user scroll input (wheel, touch, scrollbar drag) turns auto-scroll off; programmatic scrollLeft doesn't.
-function onUserScroll(): void {
+function onUserScroll(event?: WheelEvent): void {
+  if (event && isZoomWheel(event)) return
   autoScroll.value = false
 }
 function onContainerPointerDown(event: PointerEvent): void {
   // pointerdown targets the container itself only on its scrollbar; timeline content is a child
   if (event.target === containerEl.value) autoScroll.value = false
 }
+// Zoom pivots on the position bar when auto-scroll is driving the scroll; otherwise on the cursor/pinch center
+useTimelineZoom({
+  containerEl,
+  startWidthPx: () => startWidthPx.value,
+  pixelsPerSecond: () => pixelsPerSecond.value,
+  scrollIsDriven: () => autoScroll.value && (store.syncPhase === 'tracking' || playbackVisible.value),
+})
 const SEEKBAR_HEIGHT = 24
 const SEEK_SCROLL_MS = 200
 // Set on each seek so auto-scroll eases from the current scroll to the (live) playback position
@@ -356,6 +369,7 @@ onUnmounted(() => {
           />
         </div>
       </div>
+      <ScaleBar :pixels-per-second="pixelsPerSecond" :bottom-offset-px="scrollbarHeightPx" />
     </div>
   </div>
 </template>
@@ -382,7 +396,7 @@ onUnmounted(() => {
 .timeline-container {
   width: 100%;
   height: 100%;
-  overflow-x: auto;
+  overflow-x: scroll;
   overflow-y: hidden;
   position: relative;
 }

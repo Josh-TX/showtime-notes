@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
+import { clientSettings } from '../store/clientSettings'
 import TimelineNotes from './TimelineNotes.vue'
+import ScaleBar from './ScaleBar.vue'
+import { isZoomWheel, useTimelineZoom } from './useTimelineZoom'
 import { computeTiles, drawLoudnessTile, prepareTile, stretchLoudness } from './timelineDraw'
 
-// Seconds visible across the container. Constant for now; may become a setting later.
-const TIMELINE_WIDTH_SECONDS = 30
 const LIVE_PEAKS_PER_SECOND = 50
 
 const store = useShowStore()
@@ -16,9 +17,10 @@ const tileCanvases: (HTMLCanvasElement | null)[] = []
 
 const viewportWidthPx = ref(400)
 const viewportHeightPx = ref(200)
+const scrollbarHeightPx = ref(0)
 const followLive = ref(true)
 
-const pixelsPerSecond = computed(() => viewportWidthPx.value / TIMELINE_WIDTH_SECONDS)
+const pixelsPerSecond = computed(() => viewportWidthPx.value / clientSettings.timelineWidthSeconds)
 const elapsedSeconds = computed(() => store.recordingPeaks.length / LIVE_PEAKS_PER_SECOND)
 // The live edge sits at the right edge of the container (100% offset), so the left padding is a full viewport.
 const startWidthPx = computed(() => viewportWidthPx.value)
@@ -53,6 +55,8 @@ function scrollToLive(): void {
 function refreshLayout(): void {
   viewportWidthPx.value = containerEl.value?.clientWidth ?? 400
   viewportHeightPx.value = containerEl.value?.clientHeight ?? 200
+  // 0 for overlay scrollbars; measured so the scale bar clears whatever the platform draws
+  scrollbarHeightPx.value = containerEl.value ? containerEl.value.offsetHeight - containerEl.value.clientHeight : 0
   nextTick(() => {
     draw()
     scrollToLive()
@@ -70,9 +74,24 @@ watch(followLive, scrollToLive)
 
 // Programmatic scrolls don't fire these, so any of them means the user took over. Pointer-down only counts on
 // the container itself (its scrollbar), so clicking the timeline keeps following.
-function stopFollowing(): void {
+function stopFollowing(event?: WheelEvent): void {
+  if (event && isZoomWheel(event)) return
   followLive.value = false
 }
+
+// Zoom pivots on the live edge while following; otherwise on the cursor/pinch center
+useTimelineZoom({
+  containerEl,
+  startWidthPx: () => startWidthPx.value,
+  pixelsPerSecond: () => pixelsPerSecond.value,
+  scrollIsDriven: () => followLive.value,
+})
+watch(pixelsPerSecond, () =>
+  nextTick(() => {
+    draw()
+    scrollToLive()
+  }),
+)
 
 let resizeObserver: ResizeObserver | undefined
 onMounted(() => {
@@ -89,6 +108,7 @@ onUnmounted(() => resizeObserver?.disconnect())
       <label><input type="checkbox" v-model="followLive" /> follow live</label>
       <span class="elapsed">{{ formatElapsed(elapsedSeconds) }}</span>
     </div>
+    <div class="timeline-outer">
     <div
       class="timeline-container"
       ref="containerEl"
@@ -109,6 +129,8 @@ onUnmounted(() => resizeObserver?.disconnect())
         </div>
         <TimelineNotes :start-width-px="startWidthPx" :pixels-per-second="pixelsPerSecond" />
       </div>
+    </div>
+    <ScaleBar :pixels-per-second="pixelsPerSecond" :bottom-offset-px="scrollbarHeightPx" />
     </div>
   </div>
 </template>
@@ -131,9 +153,16 @@ onUnmounted(() => resizeObserver?.disconnect())
   font-family: monospace;
   color: #ccc;
 }
+.timeline-outer {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .timeline-container {
   flex: 1;
-  overflow-x: auto;
+  overflow-x: scroll;
   overflow-y: hidden;
   position: relative;
 }

@@ -13,7 +13,7 @@ export interface ClientSettings {
 }
 
 export const SETTING_LIMITS = {
-  timelineWidthSeconds: { min: 5, max: 300 },
+  timelineWidthSeconds: { min: 3, max: 300 },
   autoScrollLeftOffsetPercent: { min: 0, max: 100 },
 }
 
@@ -23,6 +23,10 @@ const defaults: ClientSettings = {
   autoScrollLeftOffsetPercent: 25,
   lastNoteColor: 'gray',
   playbackEnabled: false,
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100
 }
 
 function clamp(value: unknown, min: number, max: number, fallback: number): number {
@@ -42,7 +46,7 @@ function load(): ClientSettings {
   const o = SETTING_LIMITS.autoScrollLeftOffsetPercent
   return {
     deviceName: typeof raw.deviceName === 'string' ? raw.deviceName : defaults.deviceName,
-    timelineWidthSeconds: clamp(raw.timelineWidthSeconds, w.min, w.max, defaults.timelineWidthSeconds),
+    timelineWidthSeconds: round2(clamp(raw.timelineWidthSeconds, w.min, w.max, defaults.timelineWidthSeconds)),
     autoScrollLeftOffsetPercent: clamp(raw.autoScrollLeftOffsetPercent, o.min, o.max, defaults.autoScrollLeftOffsetPercent),
     lastNoteColor: raw.lastNoteColor && raw.lastNoteColor in NOTE_COLORS ? raw.lastNoteColor : defaults.lastNoteColor,
     playbackEnabled: typeof raw.playbackEnabled === 'boolean' ? raw.playbackEnabled : defaults.playbackEnabled,
@@ -55,7 +59,7 @@ watch(clientSettings, (s) => localStorage.setItem(STORAGE_KEY, JSON.stringify(s)
 
 export function setTimelineWidthSeconds(value: unknown): void {
   const l = SETTING_LIMITS.timelineWidthSeconds
-  clientSettings.timelineWidthSeconds = clamp(value, l.min, l.max, clientSettings.timelineWidthSeconds)
+  clientSettings.timelineWidthSeconds = round2(clamp(value, l.min, l.max, clientSettings.timelineWidthSeconds))
 }
 
 export function setAutoScrollLeftOffsetPercent(value: unknown): void {
