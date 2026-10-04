@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
-import { clientSettings } from '../store/clientSettings'
+import { clientSettings, setPlaybackScrollLeftOffsetPercent, setTrackingScrollLeftOffsetPercent } from '../store/clientSettings'
 import { playerPause, playerPlay, playerSeek, playerSetSpeed, playerSetStem, playerStop, songPlayer, type PlayerSpeed, type Stem } from '../audio/songPlayer'
 import RadioButtonGroup from './RadioButtonGroup.vue'
 import TimelineNotes from './TimelineNotes.vue'
@@ -37,7 +37,10 @@ const trackingBarsOriginSeconds = ref<number | null>(null)
 
 // Timeline width setting = seconds visible across the container, so zoom follows the container width.
 const pixelsPerSecond = computed(() => viewportWidthPx.value / clientSettings.timelineWidthSeconds)
-const barOffsetFraction = computed(() => clientSettings.autoScrollLeftOffsetPercent / 100)
+// Tracking and playback are mutually exclusive (syncing vs ready song), each with its own offset setting
+const barOffsetFraction = computed(
+  () => (store.syncPhase === 'tracking' ? clientSettings.trackingScrollLeftOffsetPercent : clientSettings.playbackScrollLeftOffsetPercent) / 100,
+)
 
 const durationSeconds = computed(() => {
   const fromPeaks = (store.waveform?.peaks.vocals.length ?? 0) / PEAKS_PER_SECOND
@@ -198,6 +201,30 @@ useTimelineZoom({
   pixelsPerSecond: () => pixelsPerSecond.value,
   scrollIsDriven: () => autoScroll.value && (store.syncPhase === 'tracking' || playbackVisible.value),
 })
+// Drag the position bar (while auto-scroll drives it) to change the left offset; committed on release
+const OFFSET_HANDLE_HALF_PX = 2
+const offsetDragPx = ref<number | null>(null)
+const offsetHandleActive = computed(() => autoScroll.value && (store.syncPhase === 'tracking' || playbackVisible.value))
+const offsetHandleLeftPx = computed(() => (offsetDragPx.value ?? startWidthPx.value) - OFFSET_HANDLE_HALF_PX)
+
+function offsetXFromEvent(event: PointerEvent): number {
+  const rect = (event.currentTarget as HTMLElement).parentElement!.getBoundingClientRect()
+  return Math.min(viewportWidthPx.value, Math.max(0, event.clientX - rect.left))
+}
+function onOffsetDown(event: PointerEvent): void {
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  offsetDragPx.value = offsetXFromEvent(event)
+}
+function onOffsetMove(event: PointerEvent): void {
+  if (offsetDragPx.value !== null) offsetDragPx.value = offsetXFromEvent(event)
+}
+function onOffsetUp(event: PointerEvent): void {
+  if (offsetDragPx.value === null) return
+  const percent = (offsetXFromEvent(event) / viewportWidthPx.value) * 100
+  offsetDragPx.value = null
+  if (store.syncPhase === 'tracking') setTrackingScrollLeftOffsetPercent(percent)
+  else setPlaybackScrollLeftOffsetPercent(percent)
+}
 const SEEKBAR_HEIGHT = 24
 const SEEK_SCROLL_MS = 200
 // Set on each seek so auto-scroll eases from the current scroll to the (live) playback position
@@ -448,6 +475,17 @@ onUnmounted(() => {
           />
         </div>
       </div>
+      <div
+        v-if="offsetHandleActive"
+        class="offset-handle"
+        :style="{ left: `${offsetHandleLeftPx}px`, width: `${OFFSET_HANDLE_HALF_PX * 2 + 1}px`, bottom: `${scrollbarHeightPx}px` }"
+        @pointerdown.stop="onOffsetDown"
+        @pointermove="onOffsetMove"
+        @pointerup="onOffsetUp"
+        @pointercancel="offsetDragPx = null"
+      >
+        <div v-if="offsetDragPx !== null" class="offset-handle-line"></div>
+      </div>
       <ScaleBar :pixels-per-second="pixelsPerSecond" :bottom-offset-px="scrollbarHeightPx" />
     </div>
   </div>
@@ -519,6 +557,21 @@ onUnmounted(() => {
 }
 </style>
 <style scoped>
+.offset-handle {
+  position: absolute;
+  top: 0;
+  z-index: 8;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.offset-handle-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 2px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.8);
+}
 .seekbar {
   position: absolute;
   background: rgba(133, 74, 209, 0.22);

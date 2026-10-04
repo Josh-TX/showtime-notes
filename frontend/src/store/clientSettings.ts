@@ -7,7 +7,8 @@ const STORAGE_KEY = 'showtimeNotes'
 export interface ClientSettings {
   deviceName: string
   timelineWidthSeconds: number
-  autoScrollLeftOffsetPercent: number
+  trackingScrollLeftOffsetPercent: number
+  playbackScrollLeftOffsetPercent: number
   lastNoteColor: NoteColor
   autoBecomeListener: boolean
   autoSelectNextSeconds: number
@@ -15,14 +16,15 @@ export interface ClientSettings {
 
 export const SETTING_LIMITS = {
   timelineWidthSeconds: { min: 3, max: 300 },
-  autoScrollLeftOffsetPercent: { min: 0, max: 100 },
+  scrollLeftOffsetPercent: { min: 0, max: 100 },
   autoSelectNextSeconds: { min: 0, max: 60 },
 }
 
 const defaults: ClientSettings = {
   deviceName: '',
   timelineWidthSeconds: 30,
-  autoScrollLeftOffsetPercent: 25,
+  trackingScrollLeftOffsetPercent: 20,
+  playbackScrollLeftOffsetPercent: 50,
   lastNoteColor: 'gray',
   autoBecomeListener: false,
   autoSelectNextSeconds: 3,
@@ -39,7 +41,7 @@ function clamp(value: unknown, min: number, max: number, fallback: number): numb
 }
 
 function load(): ClientSettings {
-  let raw: Partial<ClientSettings> = {}
+  let raw: Partial<ClientSettings> & { autoScrollLeftOffsetPercent?: number } = {}
   try {
     raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') ?? {}
   } catch {
@@ -47,11 +49,14 @@ function load(): ClientSettings {
   }
   const w = SETTING_LIMITS.timelineWidthSeconds
   const a = SETTING_LIMITS.autoSelectNextSeconds
-  const o = SETTING_LIMITS.autoScrollLeftOffsetPercent
+  const o = SETTING_LIMITS.scrollLeftOffsetPercent
+  // legacy single setting seeds both new ones
+  const legacy = raw.autoScrollLeftOffsetPercent
   return {
     deviceName: typeof raw.deviceName === 'string' ? raw.deviceName : defaults.deviceName,
     timelineWidthSeconds: round2(clamp(raw.timelineWidthSeconds, w.min, w.max, defaults.timelineWidthSeconds)),
-    autoScrollLeftOffsetPercent: clamp(raw.autoScrollLeftOffsetPercent, o.min, o.max, defaults.autoScrollLeftOffsetPercent),
+    trackingScrollLeftOffsetPercent: round2(clamp(raw.trackingScrollLeftOffsetPercent ?? legacy, o.min, o.max, defaults.trackingScrollLeftOffsetPercent)),
+    playbackScrollLeftOffsetPercent: round2(clamp(raw.playbackScrollLeftOffsetPercent ?? legacy, o.min, o.max, defaults.playbackScrollLeftOffsetPercent)),
     lastNoteColor: raw.lastNoteColor && raw.lastNoteColor in NOTE_COLORS ? raw.lastNoteColor : defaults.lastNoteColor,
     autoBecomeListener: typeof raw.autoBecomeListener === 'boolean' ? raw.autoBecomeListener : defaults.autoBecomeListener,
     autoSelectNextSeconds: clamp(raw.autoSelectNextSeconds, a.min, a.max, defaults.autoSelectNextSeconds),
@@ -67,9 +72,14 @@ export function setTimelineWidthSeconds(value: unknown): void {
   clientSettings.timelineWidthSeconds = round2(clamp(value, l.min, l.max, clientSettings.timelineWidthSeconds))
 }
 
-export function setAutoScrollLeftOffsetPercent(value: unknown): void {
-  const l = SETTING_LIMITS.autoScrollLeftOffsetPercent
-  clientSettings.autoScrollLeftOffsetPercent = clamp(value, l.min, l.max, clientSettings.autoScrollLeftOffsetPercent)
+export function setTrackingScrollLeftOffsetPercent(value: unknown): void {
+  const l = SETTING_LIMITS.scrollLeftOffsetPercent
+  clientSettings.trackingScrollLeftOffsetPercent = round2(clamp(value, l.min, l.max, clientSettings.trackingScrollLeftOffsetPercent))
+}
+
+export function setPlaybackScrollLeftOffsetPercent(value: unknown): void {
+  const l = SETTING_LIMITS.scrollLeftOffsetPercent
+  clientSettings.playbackScrollLeftOffsetPercent = round2(clamp(value, l.min, l.max, clientSettings.playbackScrollLeftOffsetPercent))
 }
 
 export function setDeviceName(value: string): void {

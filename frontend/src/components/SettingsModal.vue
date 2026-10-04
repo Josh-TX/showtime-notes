@@ -4,7 +4,8 @@ import ListenerSection from './ListenerSection.vue'
 import {
   clientSettings,
   SETTING_LIMITS,
-  setAutoScrollLeftOffsetPercent,
+  setPlaybackScrollLeftOffsetPercent,
+  setTrackingScrollLeftOffsetPercent,
   setAutoSelectNextSeconds,
   setDeviceName,
   setTimelineWidthSeconds,
@@ -41,10 +42,15 @@ function onTimelineWidth(e: Event): void {
   setTimelineWidthSeconds(input.value)
   input.value = String(clientSettings.timelineWidthSeconds)
 }
-function onOffset(e: Event): void {
+function onTrackingOffset(e: Event): void {
   const input = e.target as HTMLInputElement
-  setAutoScrollLeftOffsetPercent(input.value)
-  input.value = String(clientSettings.autoScrollLeftOffsetPercent)
+  setTrackingScrollLeftOffsetPercent(input.value)
+  input.value = String(clientSettings.trackingScrollLeftOffsetPercent)
+}
+function onPlaybackOffset(e: Event): void {
+  const input = e.target as HTMLInputElement
+  setPlaybackScrollLeftOffsetPercent(input.value)
+  input.value = String(clientSettings.playbackScrollLeftOffsetPercent)
 }
 function onAutoSelectNext(e: Event): void {
   const input = e.target as HTMLInputElement
@@ -84,13 +90,23 @@ function onAutoSelectNext(e: Event): void {
                 />
               </label>
               <label>
-                Auto-Scroll left offset (%)
+                Tracking auto-scroll left offset (%)
                 <input
                   type="number"
-                  :min="SETTING_LIMITS.autoScrollLeftOffsetPercent.min"
-                  :max="SETTING_LIMITS.autoScrollLeftOffsetPercent.max"
-                  :value="clientSettings.autoScrollLeftOffsetPercent"
-                  @change="onOffset"
+                  :min="SETTING_LIMITS.scrollLeftOffsetPercent.min"
+                  :max="SETTING_LIMITS.scrollLeftOffsetPercent.max"
+                  :value="clientSettings.trackingScrollLeftOffsetPercent"
+                  @change="onTrackingOffset"
+                />
+              </label>
+              <label>
+                Playback auto-scroll left offset (%)
+                <input
+                  type="number"
+                  :min="SETTING_LIMITS.scrollLeftOffsetPercent.min"
+                  :max="SETTING_LIMITS.scrollLeftOffsetPercent.max"
+                  :value="clientSettings.playbackScrollLeftOffsetPercent"
+                  @change="onPlaybackOffset"
                 />
               </label>
               <label>
