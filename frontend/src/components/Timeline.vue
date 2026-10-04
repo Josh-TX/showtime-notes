@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useShowStore } from '../store/show'
 import { clientSettings, setPlaybackScrollLeftOffsetPercent, setTrackingScrollLeftOffsetPercent } from '../store/clientSettings'
 import { playerPause, playerPlay, playerSeek, playerSetSpeed, playerSetStem, playerStop, songPlayer, type PlayerSpeed, type Stem } from '../audio/songPlayer'
+import { api } from '../api'
 import RadioButtonGroup from './RadioButtonGroup.vue'
 import TimelineNotes from './TimelineNotes.vue'
 import { PositionSmoother, type BarState } from './smoothing'
@@ -16,6 +17,8 @@ const CONFIDENCE_BAR_MAX_HEIGHT = 120
 const ACQUIRING_BAR_COLOR = '#e0c33e'
 const TRACKING_BAR_COLOR = '#3ecf5f'
 // Rank order (best candidate first) maps to these colors; shared with CandidatesPanel.vue's color key.
+// The acquiring scan peak that passed the lock thresholds this step; overrides its candidate color.
+const PASSING_BAR_COLOR = '#3ecf5f'
 const CANDIDATE_COLORS = ['#00e5ff', '#ff00ff', '#ff9800']
 
 const store = useShowStore()
@@ -117,7 +120,7 @@ function drawAcquiringConfidenceBars(): void {
       const bar = store.confidenceBars[i]
       const x = bar.refSeconds * pixelsPerSecond.value - barWidth / 2
       if (x + barWidth < tile.left || x >= right) continue
-      const color = candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR
+      const color = i === store.passingBarIndex ? PASSING_BAR_COLOR : (candidateColorByBarIndex.get(i) ?? ACQUIRING_BAR_COLOR)
       drawConfidenceBar(ctx, x, barWidth, height, bar.score, color)
     }
   }
@@ -238,6 +241,24 @@ const speedLabel = computed(() => `${songPlayer.speed}x` as (typeof SPEEDS)[numb
 // Playback is only available on ready songs (so never while syncing)
 const playbackAllowed = computed(() => store.selectedSong?.status === 'ready')
 const playbackVisible = playbackAllowed
+const isSynced = computed(() => !!store.selectedSongId && store.show?.sync.targetSongId === store.selectedSongId)
+
+// Ref-time span currently visible in the container (the start padding is before ref time 0), clamped to the song.
+function onAcquireRangeClick(): void {
+  if (store.syncPhase === 'acquiring') acquireInCurrentRange()
+}
+
+async function acquireInCurrentRange(): Promise<void> {
+  const el = containerEl.value
+  const id = store.selectedSongId
+  if (!el || !id) return
+  const pps = pixelsPerSecond.value
+  const max = durationSeconds.value
+  const lo = Math.min(max, Math.max(0, (el.scrollLeft - startWidthPx.value) / pps))
+  const hi = Math.min(max, Math.max(lo, (el.scrollLeft + el.clientWidth - startWidthPx.value) / pps))
+  await api.startSync(id, 'acquire-sync-middle', lo, hi)
+}
+
 const seekFraction = computed(() => (durationSeconds.value > 0 ? Math.min(1, songPlayer.position / durationSeconds.value) : 0))
 
 // Never draw/scroll past the timeline end, whatever the audio element reports
@@ -314,7 +335,7 @@ watch(autoScroll, (on) => {
 })
 watch(pixelsPerSecond, () => nextTick(refreshLayout))
 watch(
-  () => [store.confidenceBars, store.bestCandidates, store.syncPhase],
+  () => [store.confidenceBars, store.bestCandidates, store.passingBarIndex, store.syncPhase],
   () =>
     nextTick(() => {
       drawAcquiringConfidenceBars()
@@ -401,6 +422,19 @@ onUnmounted(() => {
           accent="rgb(133, 74, 209)"
           @update:model-value="(v) => playerSetSpeed(parseInt(v) as PlayerSpeed)"
         />
+      </div>
+      <div
+        v-if="isSynced"
+        class="acquire-range-btn"
+        :class="{ disabled: store.syncPhase !== 'acquiring' }"
+        role="button"
+        :aria-disabled="store.syncPhase !== 'acquiring'"
+        :tabindex="store.syncPhase === 'acquiring' ? 0 : -1"
+        @click="onAcquireRangeClick"
+        @keydown.enter.prevent="onAcquireRangeClick"
+        @keydown.space.prevent="onAcquireRangeClick"
+      >
+        acquire in current range
       </div>
     </div>
     <div class="timeline-outer">
@@ -507,6 +541,24 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.8rem;
+}
+.acquire-range-btn {
+  margin-left: auto;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid #e0c33e;
+  border-radius: 4px;
+  background: rgba(224, 195, 62, 0.07);
+  color: #e0c33e;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+.acquire-range-btn:hover:not(.disabled) {
+  background: rgba(224, 195, 62, 0.16);
+}
+.acquire-range-btn.disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 .timeline-outer {
   position: relative;

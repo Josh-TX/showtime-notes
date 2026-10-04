@@ -79,6 +79,19 @@ const isSynced = computed(() => store.show?.sync.targetSongId === store.selected
 const syncPhase = computed(() => (isSynced.value ? store.show?.sync.phase ?? null : null))
 const syncColor = computed(() => (syncPhase.value === 'tracking' ? '#3ecf5f' : '#e0c33e'))
 
+function formatClock(seconds: number): string {
+  const total = Math.floor(seconds)
+  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, '0')}`
+}
+
+const phaseLabel = computed(() => {
+  if (syncPhase.value === 'tracking') return 'Tracking'
+  const sync = store.show?.sync
+  if (sync?.acquireMode === 'acquire-sync-start') return 'Acquiring start'
+  if (sync?.acquireLoSeconds == null || sync.acquireHiSeconds == null) return 'Acquiring'
+  return `Acquiring ${formatClock(sync.acquireLoSeconds)}–${formatClock(sync.acquireHiSeconds)}`
+})
+
 async function toggleSync(): Promise<void> {
   const song = store.selectedSong
   if (!song) return
@@ -115,7 +128,7 @@ async function toggleSync(): Promise<void> {
         <template v-if="isSynced">
           <SyncArrows :color="syncColor" :size="16" />
           <span class="phase-badge" :style="{ color: syncColor, borderColor: syncColor }">
-            {{ syncPhase === 'tracking' ? 'Tracking' : 'Acquiring' }}
+            {{ phaseLabel }}
           </span>
         </template>
       </div>

@@ -131,6 +131,7 @@ class StepEvent:
     position_seconds: float | None  # None unless mode == 'tracking'
     bars: list[ConfidenceBar] = field(default_factory=list)
     candidates: list[Candidate] = field(default_factory=list)  # acquiring only; see _best_candidates
+    passing_bar_index: int | None = None  # acquiring only; index into bars of the scan peak that passed the thresholds
 
 
 class LiveAligner:
@@ -194,7 +195,7 @@ class LiveAligner:
         j_frac, best, _ = _analyze_peak(scores, b)
         left, right = _side_margins(scores, b)
         ok = best >= ACQ_MIN_SCORE and left >= ACQ_MIN_LEFT_MARGIN and right >= ACQ_MIN_RIGHT_MARGIN
-        return {"ok": ok, "j": j_lo + j_frac, "scores": scores, "j_lo": j_lo}
+        return {"ok": ok, "j": j_lo + j_frac, "scores": scores, "j_lo": j_lo, "bar": b}
 
     def _acquire_step(self, i_end: int) -> StepEvent:
         abs_end = i_end + self._base  # offsets are absolute: the ring trims, so ring-relative indices don't advance
@@ -225,7 +226,8 @@ class LiveAligner:
             # bars are still shaped for the acquiring scan range; sending them here would flash
             # mismatched bars in the tracking color, so send none until _track_step computes real ones
             return StepEvent("tracking", True, False, frame_center_seconds(abs_end + self._offset), [])
-        return StepEvent("acquiring", False, False, None, bars, candidates)
+        passing_bar = passing["bar"] if passing is not None else None
+        return StepEvent("acquiring", False, False, None, bars, candidates, passing_bar)
 
     def _track_step(self, i_end: int) -> StepEvent:
         abs_end = i_end + self._base

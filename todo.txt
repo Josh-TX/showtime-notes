@@ -1,5 +1,4 @@
 toggle debug during sync
-drag the position of auto-scroll. 
 acquire range
 help modal
 
@@ -9,3 +8,4 @@ update favicon
 right-click to add timeline-note
 automatically start listening
 autosync next song
+drag the position of auto-scroll. 

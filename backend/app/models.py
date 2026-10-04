@@ -127,10 +127,13 @@ class SyncState(ApiModel):
     phase: SyncPhase | None = None  # None iff status is NONE
     target_song_id: str | None = None
     acquire_mode: AcquireMode | None = None
+    acquire_lo_seconds: float | None = None  # ref-song scan range while acquiring; kept across drops from tracking
+    acquire_hi_seconds: float | None = None
     anchor_ref_seconds: float | None = None  # ref-song time at wallclock_ms; None while acquiring
     wallclock_ms: float | None = None  # when the latest snapshot (anchor + bars) was computed; set in both phases
     bars: list[ConfidenceBar] = []
     best_candidates: list[SyncCandidate] = []  # acquiring only; empty while tracking
+    passing_bar_index: int | None = None  # acquiring only; bar whose scan passed the thresholds this step
 
 
 class ListenerInfo(ApiModel):

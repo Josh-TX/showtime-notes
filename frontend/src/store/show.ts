@@ -25,6 +25,7 @@ export const useShowStore = defineStore('show', {
     confidenceBars: [] as ConfidenceBar[],
     snapshotWallclockMs: null as number | null,
     bestCandidates: [] as SyncCandidate[],
+    passingBarIndex: null as number | null,
     syncPhase: null as SyncPhase | null,
     loudness: 0,
     isListener: false,
@@ -56,12 +57,14 @@ export const useShowStore = defineStore('show', {
           this.confidenceBars = []
           this.snapshotWallclockMs = null
           this.bestCandidates = []
+          this.passingBarIndex = null
           this.syncPhase = null
         } else {
           this.positionAnchor = anchorFromSync(payload.sync)
           this.confidenceBars = payload.sync.bars
           this.snapshotWallclockMs = payload.sync.wallclockMs
           this.bestCandidates = payload.sync.bestCandidates
+          this.passingBarIndex = payload.sync.passingBarIndex
           this.syncPhase = payload.sync.phase
         }
       })
@@ -78,12 +81,14 @@ export const useShowStore = defineStore('show', {
           wallclockMs: number | null
           bars: ConfidenceBar[]
           bestCandidates: SyncCandidate[]
+          passingBarIndex: number | null
         }) => {
           if (payload.targetSongId !== this.selectedSongId) return
           this.positionAnchor = anchorFromSync(payload)
           this.confidenceBars = payload.bars
           this.snapshotWallclockMs = payload.wallclockMs
           this.bestCandidates = payload.bestCandidates
+          this.passingBarIndex = payload.passingBarIndex
           this.syncPhase = payload.phase
         },
       )
@@ -123,12 +128,14 @@ export const useShowStore = defineStore('show', {
         this.confidenceBars = this.show.sync.bars
         this.snapshotWallclockMs = this.show.sync.wallclockMs
         this.bestCandidates = this.show.sync.bestCandidates
+        this.passingBarIndex = this.show.sync.passingBarIndex
         this.syncPhase = this.show.sync.phase
       } else {
         this.positionAnchor = null
         this.confidenceBars = []
         this.snapshotWallclockMs = null
         this.bestCandidates = []
+        this.passingBarIndex = null
         this.syncPhase = null
       }
       this.waveform = null

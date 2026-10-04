@@ -84,10 +84,13 @@ export interface SyncState {
   phase: SyncPhase | null
   targetSongId: string | null
   acquireMode: AcquireMode | null
+  acquireLoSeconds: number | null
+  acquireHiSeconds: number | null
   anchorRefSeconds: number | null
   wallclockMs: number | null
   bars: ConfidenceBar[]
   bestCandidates: SyncCandidate[]
+  passingBarIndex: number | null
 }
 
 export interface ListenerInfo {

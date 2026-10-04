@@ -32,7 +32,10 @@ async def start_sync(song_id: str, mode: AcquireMode, viewport_lo_s: float | Non
     state.live_aligner = LiveAligner(ref_features, lo, hi)
     state.chroma_stream = chroma.ChromaStream()
     state.chroma_resampler = StreamResampler(CAPTURE_SR, chroma.SR)
-    state.sync = SyncState(status=SyncStatus.SYNCING, phase=SyncPhase.ACQUIRING, target_song_id=song_id, acquire_mode=mode)
+    state.sync = SyncState(
+        status=SyncStatus.SYNCING, phase=SyncPhase.ACQUIRING, target_song_id=song_id, acquire_mode=mode,
+        acquire_lo_seconds=lo, acquire_hi_seconds=hi,
+    )
 
     song = state.songs[song_id]
     song.status = SongStatus.SYNCING
@@ -98,6 +101,8 @@ async def _handle_step_event(event: StepEvent) -> None:
         for c in candidates
     ]
 
+    state.sync.passing_bar_index = event.passing_bar_index if phase == SyncPhase.ACQUIRING else None
+
     await ws_manager.manager.broadcast(
         "sync_update",
         {
@@ -107,6 +112,7 @@ async def _handle_step_event(event: StepEvent) -> None:
             "wallclockMs": state.sync.wallclock_ms,
             "bars": bars,
             "bestCandidates": best_candidates,
+            "passingBarIndex": state.sync.passing_bar_index,
         },
     )
 
