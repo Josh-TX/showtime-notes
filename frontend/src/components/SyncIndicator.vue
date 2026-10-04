@@ -21,7 +21,10 @@ const statusTitle = computed(() => {
 })
 
 function selectSyncedSong(): void {
-  if (targetId.value) store.selectSong(targetId.value)
+  const id = targetId.value
+  if (!id) return
+  store.selectSong(id)
+  document.querySelector(`.song-row[data-id="${id}"]`)?.scrollIntoView({ block: 'nearest' })
 }
 </script>
 
@@ -36,7 +39,7 @@ function selectSyncedSong(): void {
     @keydown.enter="selectSyncedSong"
   >
     <SyncArrows :color="color" :size="16" />
-    <span v-if="targetName" class="target-name">{{ targetName }}</span>
+    <span class="target-name">{{ targetName ?? 'nothing synced' }}</span>
   </div>
 </template>
 

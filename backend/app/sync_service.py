@@ -10,7 +10,7 @@ from .models import AcquireMode, ConfidenceBar, SongStatus, SyncCandidate, SyncP
 from .resample import StreamResampler
 from .state import state
 
-SONG_END_MARGIN_SECONDS = 0.15
+SONG_END_MARGIN_SECONDS = 0.25
 
 
 async def start_sync(song_id: str, mode: AcquireMode, viewport_lo_s: float | None = None, viewport_hi_s: float | None = None) -> None:

@@ -10,11 +10,13 @@ export interface ClientSettings {
   autoScrollLeftOffsetPercent: number
   lastNoteColor: NoteColor
   autoBecomeListener: boolean
+  autoSelectNextSeconds: number
 }
 
 export const SETTING_LIMITS = {
   timelineWidthSeconds: { min: 3, max: 300 },
   autoScrollLeftOffsetPercent: { min: 0, max: 100 },
+  autoSelectNextSeconds: { min: 0, max: 60 },
 }
 
 const defaults: ClientSettings = {
@@ -23,6 +25,7 @@ const defaults: ClientSettings = {
   autoScrollLeftOffsetPercent: 25,
   lastNoteColor: 'gray',
   autoBecomeListener: false,
+  autoSelectNextSeconds: 3,
 }
 
 function round2(n: number): number {
@@ -43,6 +46,7 @@ function load(): ClientSettings {
     // corrupt entry, use defaults
   }
   const w = SETTING_LIMITS.timelineWidthSeconds
+  const a = SETTING_LIMITS.autoSelectNextSeconds
   const o = SETTING_LIMITS.autoScrollLeftOffsetPercent
   return {
     deviceName: typeof raw.deviceName === 'string' ? raw.deviceName : defaults.deviceName,
@@ -50,6 +54,7 @@ function load(): ClientSettings {
     autoScrollLeftOffsetPercent: clamp(raw.autoScrollLeftOffsetPercent, o.min, o.max, defaults.autoScrollLeftOffsetPercent),
     lastNoteColor: raw.lastNoteColor && raw.lastNoteColor in NOTE_COLORS ? raw.lastNoteColor : defaults.lastNoteColor,
     autoBecomeListener: typeof raw.autoBecomeListener === 'boolean' ? raw.autoBecomeListener : defaults.autoBecomeListener,
+    autoSelectNextSeconds: clamp(raw.autoSelectNextSeconds, a.min, a.max, defaults.autoSelectNextSeconds),
   }
 }
 
@@ -70,4 +75,9 @@ export function setAutoScrollLeftOffsetPercent(value: unknown): void {
 export function setDeviceName(value: string): void {
   const name = value.trim()
   if (name) clientSettings.deviceName = name
+}
+
+export function setAutoSelectNextSeconds(value: unknown): void {
+  const l = SETTING_LIMITS.autoSelectNextSeconds
+  clientSettings.autoSelectNextSeconds = round2(clamp(value, l.min, l.max, clientSettings.autoSelectNextSeconds))
 }

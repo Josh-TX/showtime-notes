@@ -12,12 +12,12 @@ const settings = ref<InstanceType<typeof SettingsModal> | null>(null)
   <header class="navbar">
     <span class="brand">Showtime Notes</span>
     <SyncIndicator />
-    <NewRecordingModal />
     <ListenerIndicator
       class="right"
       @click="settings?.openModal('listener')"
       @keydown.enter="settings?.openModal('listener')"
     />
+    <NewRecordingModal />
     <SettingsModal ref="settings" />
   </header>
 </template>

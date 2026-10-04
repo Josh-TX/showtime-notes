@@ -5,6 +5,7 @@ import SongMenu from './components/SongMenu.vue'
 import SongPanel from './components/SongPanel.vue'
 import Timeline from './components/Timeline.vue'
 import RecordingTimeline from './components/RecordingTimeline.vue'
+import AutoAdvanceOverlay from './components/AutoAdvanceOverlay.vue'
 import DragGhost from './components/DragGhost.vue'
 import CandidatesPanel from './components/CandidatesPanel.vue'
 import { useShowStore } from './store/show'
@@ -44,6 +45,7 @@ function join(): void {
     </div>
     <CandidatesPanel />
     <DragGhost />
+    <AutoAdvanceOverlay />
   </div>
 </template>
 

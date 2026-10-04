@@ -5,6 +5,7 @@ import {
   clientSettings,
   SETTING_LIMITS,
   setAutoScrollLeftOffsetPercent,
+  setAutoSelectNextSeconds,
   setDeviceName,
   setTimelineWidthSeconds,
 } from '../store/clientSettings'
@@ -44,6 +45,11 @@ function onOffset(e: Event): void {
   const input = e.target as HTMLInputElement
   setAutoScrollLeftOffsetPercent(input.value)
   input.value = String(clientSettings.autoScrollLeftOffsetPercent)
+}
+function onAutoSelectNext(e: Event): void {
+  const input = e.target as HTMLInputElement
+  setAutoSelectNextSeconds(input.value)
+  input.value = String(clientSettings.autoSelectNextSeconds)
 }
 </script>
 
@@ -85,6 +91,17 @@ function onOffset(e: Event): void {
                   :max="SETTING_LIMITS.autoScrollLeftOffsetPercent.max"
                   :value="clientSettings.autoScrollLeftOffsetPercent"
                   @change="onOffset"
+                />
+              </label>
+              <label>
+                Auto-select next song (seconds before end)
+                <input
+                  type="number"
+                  :min="SETTING_LIMITS.autoSelectNextSeconds.min"
+                  :max="SETTING_LIMITS.autoSelectNextSeconds.max"
+                  step="0.1"
+                  :value="clientSettings.autoSelectNextSeconds"
+                  @change="onAutoSelectNext"
                 />
               </label>
             </template>
