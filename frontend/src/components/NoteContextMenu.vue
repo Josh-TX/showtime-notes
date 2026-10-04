@@ -2,7 +2,6 @@
 import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
-import { clientSettings } from '../store/clientSettings'
 import { clearNoteEdit, noteEdit, type NotePlace } from '../store/noteEdit'
 import ColorPicker from './ColorPicker.vue'
 import type { NoteColor } from '../types'
@@ -19,6 +18,8 @@ const store = useShowStore()
 const menu = ref<HTMLElement | null>(null)
 const input = ref<HTMLInputElement | null>(null)
 const isNew = props.noteId === null
+// menu position, nudged after mount so the whole menu stays on screen
+const pos = ref({ x: props.x, y: props.y })
 const songId = store.selectedSong?.id
 let id = props.noteId
 let discarded = false
@@ -31,7 +32,7 @@ const existing = computed(() => {
   return notes?.find((n) => n.id === props.noteId) ?? null
 })
 const text = ref(existing.value?.text ?? '')
-const color = ref<NoteColor>(existing.value?.color ?? clientSettings.lastNoteColor)
+const color = ref<NoteColor>(existing.value?.color ?? 'gray')
 
 Object.assign(noteEdit, {
   kind: props.kind,
@@ -81,7 +82,6 @@ function onInput(): void {
 function setColor(c: NoteColor): void {
   color.value = c
   noteEdit.color = c
-  clientSettings.lastNoteColor = c
   clearTimeout(timer)
   save()
 }
@@ -117,7 +117,15 @@ function onKeyDown(e: KeyboardEvent): void {
 onMounted(() => {
   window.addEventListener('pointerdown', onOutsidePointerDown, true)
   window.addEventListener('keydown', onKeyDown)
-  nextTick(() => input.value?.focus())
+  nextTick(() => {
+    input.value?.focus()
+    const el = menu.value
+    if (!el) return
+    pos.value = {
+      x: Math.max(0, Math.min(props.x, window.innerWidth - el.offsetWidth)),
+      y: Math.max(0, Math.min(props.y, window.innerHeight - el.offsetHeight)),
+    }
+  })
 })
 onUnmounted(() => {
   window.removeEventListener('pointerdown', onOutsidePointerDown, true)
@@ -127,7 +135,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="isNew || existing" ref="menu" class="note-menu" :style="{ left: `${x}px`, top: `${y}px` }" @contextmenu.prevent>
+  <div v-if="isNew || existing" ref="menu" class="note-menu" :style="{ left: `${pos.x}px`, top: `${pos.y}px` }" @contextmenu.prevent>
     <input
       ref="input"
       v-model="text"

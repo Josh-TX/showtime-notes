@@ -192,6 +192,8 @@ function left(seconds: number): number {
 .notes-layer {
   position: absolute;
   inset: 0;
+  /* chips hanging past the timeline's end are clipped, so they can't grow the scroll range */
+  overflow: hidden;
   pointer-events: none;
   z-index: 4;
 }

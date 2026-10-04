@@ -1,6 +1,4 @@
 import { reactive, watch } from 'vue'
-import { NOTE_COLORS } from './noteColors'
-import type { NoteColor } from '../types'
 
 const STORAGE_KEY = 'showtimeNotes'
 
@@ -9,7 +7,6 @@ export interface ClientSettings {
   timelineWidthSeconds: number
   trackingScrollLeftOffsetPercent: number
   playbackScrollLeftOffsetPercent: number
-  lastNoteColor: NoteColor
   autoBecomeListener: boolean
   autoSelectNextSeconds: number
 }
@@ -25,7 +22,6 @@ const defaults: ClientSettings = {
   timelineWidthSeconds: 30,
   trackingScrollLeftOffsetPercent: 20,
   playbackScrollLeftOffsetPercent: 50,
-  lastNoteColor: 'gray',
   autoBecomeListener: false,
   autoSelectNextSeconds: 3,
 }
@@ -57,7 +53,6 @@ function load(): ClientSettings {
     timelineWidthSeconds: round2(clamp(raw.timelineWidthSeconds, w.min, w.max, defaults.timelineWidthSeconds)),
     trackingScrollLeftOffsetPercent: round2(clamp(raw.trackingScrollLeftOffsetPercent ?? legacy, o.min, o.max, defaults.trackingScrollLeftOffsetPercent)),
     playbackScrollLeftOffsetPercent: round2(clamp(raw.playbackScrollLeftOffsetPercent ?? legacy, o.min, o.max, defaults.playbackScrollLeftOffsetPercent)),
-    lastNoteColor: raw.lastNoteColor && raw.lastNoteColor in NOTE_COLORS ? raw.lastNoteColor : defaults.lastNoteColor,
     autoBecomeListener: typeof raw.autoBecomeListener === 'boolean' ? raw.autoBecomeListener : defaults.autoBecomeListener,
     autoSelectNextSeconds: clamp(raw.autoSelectNextSeconds, a.min, a.max, defaults.autoSelectNextSeconds),
   }
