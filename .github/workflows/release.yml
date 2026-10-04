@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontend
+        run: npm ci && npm run build
+        working-directory: frontend
+
+      - name: Package zip
+        run: |
+          NAME="showtime-notes-${GITHUB_REF_NAME}"
+          mkdir -p "dist/$NAME"
+          cp -r backend/app backend/pyproject.toml backend/uv.lock "dist/$NAME/"
+          printf '# Showtime Notes\n\nRequires [uv](https://docs.astral.sh/uv/).\n\nRun via:\n\n    uv run showtime-notes [--port <port>] [--data <dir>]\n\nThen open http://localhost:8000\n' > "dist/$NAME/README.md"
+          find "dist/$NAME" -name __pycache__ -type d -prune -exec rm -rf {} +
+          (cd dist && zip -r "$NAME.zip" "$NAME")
+          rm -rf "dist/$NAME"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip

@@ -1,13 +1,16 @@
-Showtime Notes
+# Showtime Notes
 
-this is still in-progress. 
+Record a song's rehearsal, add notes to a timeline, and during the live performance the timeline will stay in sync. 
 
-## Microphone access / HTTPS
+# Usage
 
-Browsers only allow microphone/tab capture in a secure context (https or `localhost`). A plain `http://<lan-ip>` page can't become the listener. Options:
+3 ways to run showtime-notes
 
-- Open the page via `http://localhost:8000` on the server machine.
-- Run uvicorn with TLS: `uvicorn app.main:app --host 0.0.0.0 --port 8443 --ssl-keyfile key.pem --ssl-certfile fullchain.pem`. Needs a cert trusted by the browser, e.g. Let's Encrypt (DNS-01, e.g. a DuckDNS name pointing at the LAN IP) or mkcert.
-- Put a reverse proxy (Caddy, nginx) in front. It must forward WebSocket upgrades on `/ws`.
+1. **Release zip:** download a release, unzip it, and in the folder run `uv run showtime-notes [--port <port>] [--data <dir>]`. Then open http://localhost:8000.
+2. **Development:** clone this repo, `npm ci` in `frontend/`, `uv sync` in `backend/`, then run the "Full Stack" launch config in VS Code. Open the Vite dev server at http://localhost:5173 (proxies `/api` and `/ws` to the backend on 8000).
+3. **From source, no VS Code:** clone this repo, then:
 
-The client picks `wss://` automatically on https pages.
+       cd frontend && npm ci && npm run build   # outputs to backend/app/static
+       cd ../backend && uv run showtime-notes
+
+   The backend serves the built frontend at http://localhost:8000.

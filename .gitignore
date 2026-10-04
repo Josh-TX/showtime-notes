@@ -23,3 +23,6 @@ backend/data/
 
 # Local aligner test corpus
 media/
+
+# Built frontend (release zip)
+backend/app/static/

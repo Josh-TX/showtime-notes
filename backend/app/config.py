@@ -1,6 +1,7 @@
+import os
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(os.environ.get("SHOWTIME_DATA") or Path(__file__).resolve().parent.parent / "data")
 SONGS_DIR = DATA_DIR / "songs"
 SHOW_FILE = DATA_DIR / "show.json"
 
