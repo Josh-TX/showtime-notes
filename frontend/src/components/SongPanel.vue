@@ -68,6 +68,14 @@ async function stopAndDiscard(): Promise<void> {
   await api.stopAndDiscardRecording()
 }
 
+async function renameSong(): Promise<void> {
+  const song = store.selectedSong
+  if (!song) return
+  const name = window.prompt('Rename song', song.name)?.trim()
+  if (!name || name === song.name) return
+  await api.renameSong(song.id, name)
+}
+
 async function deleteSong(): Promise<void> {
   const song = store.selectedSong
   if (!song) return
@@ -119,7 +127,10 @@ async function toggleSync(): Promise<void> {
     <template v-else>
       <div class="title-row">
         <h2>{{ store.selectedSong.name }}</h2>
-        <button class="delete-btn" @click="deleteSong">Delete</button>
+        <div class="title-actions">
+          <button class="rename-btn" @click="renameSong">Rename</button>
+          <button class="delete-btn" @click="deleteSong">Delete</button>
+        </div>
       </div>
       <div v-if="['ready', 'syncing'].includes(store.selectedSong.status)" class="sync-row">
         <button class="sync-btn" @click="toggleSync">
@@ -167,6 +178,16 @@ h2 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.title-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.rename-btn {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.6rem;
 }
 .delete-btn {
   flex-shrink: 0;

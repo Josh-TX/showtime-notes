@@ -61,7 +61,9 @@ function tick(): void {
   rafId = requestAnimationFrame(tick)
   const anchor = store.positionAnchor
   const song = store.selectedSong
-  if (!anchor || !song?.durationSeconds || firedForSongId === song.id) return
+  // selectSong sets selectedSongId/anchor immediately but selectedSong lags behind the fetch; skip the mismatch
+  // window or the new song's anchor gets compared against the old song's duration.
+  if (!anchor || !song?.durationSeconds || song.id !== store.selectedSongId || firedForSongId === song.id) return
   const position = anchor.refSeconds + (Date.now() - anchor.wallclockMs) / 1000
   const remaining = song.durationSeconds - position
   if (remaining > clientSettings.autoSelectNextSeconds + AUTO_SELECT_TRANSITION_MS / 1000) return
