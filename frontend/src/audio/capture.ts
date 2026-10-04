@@ -1,5 +1,8 @@
 import captureWorkletUrl from './capture-worklet.js?url'
+import { reactive } from 'vue'
 import { ws } from '../ws'
+
+export const captureState = reactive<{ kind: 'mic' | 'tab' | null }>({ kind: null })
 
 let seq = 0
 let audioContext: AudioContext | null = null
@@ -38,6 +41,7 @@ export async function startCapture(deviceId?: string): Promise<void> {
     },
   })
   await pipeStream(mediaStream)
+  captureState.kind = 'mic'
 }
 
 export async function startTabCapture(): Promise<void> {
@@ -55,6 +59,7 @@ export async function startTabCapture(): Promise<void> {
     throw new Error('The shared tab did not include audio. Re-share and check "Share tab audio".')
   }
   await pipeStream(new MediaStream(audioTracks))
+  captureState.kind = 'tab'
 }
 
 export function stopCapture(): void {
@@ -63,4 +68,9 @@ export function stopCapture(): void {
   stream = null
   audioContext = null
   seq = 0
+  captureState.kind = null
+}
+
+export function getCaptureDeviceId(): string | undefined {
+  return stream?.getAudioTracks()[0]?.getSettings().deviceId
 }

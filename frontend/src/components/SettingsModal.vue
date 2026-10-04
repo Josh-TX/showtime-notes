@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import ListenerSection from './ListenerSection.vue'
 import {
   clientSettings,
   SETTING_LIMITS,
@@ -8,17 +9,26 @@ import {
   setTimelineWidthSeconds,
 } from '../store/clientSettings'
 
-type Section = 'client' | 'server'
+type Section = 'client' | 'listener' | 'server'
 
 const dialog = ref<HTMLDialogElement | null>(null)
 const section = ref<Section>('client')
+const isOpen = ref(false)
 
-function openModal(): void {
+function openModal(target?: Section): void {
+  if (target) section.value = target
   dialog.value?.showModal()
+  isOpen.value = true
 }
 function closeModal(): void {
   dialog.value?.close()
 }
+
+defineExpose({ openModal })
+
+onMounted(() => {
+  if (clientSettings.autoBecomeListener) openModal('listener')
+})
 
 function onDeviceName(e: Event): void {
   const input = e.target as HTMLInputElement
@@ -39,13 +49,14 @@ function onOffset(e: Event): void {
 
 <template>
   <div>
-    <button @click="openModal">Settings</button>
+    <button @click="openModal()">Settings</button>
 
-    <dialog ref="dialog" class="settings-modal" @click.self="closeModal">
+    <dialog ref="dialog" class="settings-modal" @click.self="closeModal" @close="isOpen = false">
       <div class="modal-content">
         <div class="body">
           <nav class="sidebar">
             <button :class="{ active: section === 'client' }" @click="section = 'client'">Client Settings</button>
+            <button :class="{ active: section === 'listener' }" @click="section = 'listener'">Listener</button>
             <button :class="{ active: section === 'server' }" @click="section = 'server'">Server Settings</button>
           </nav>
           <div class="section">
@@ -77,7 +88,8 @@ function onOffset(e: Event): void {
                 />
               </label>
             </template>
-            <template v-else>
+            <ListenerSection v-else-if="section === 'listener' && isOpen" />
+            <template v-else-if="section === 'server'">
               <h2>Server Settings</h2>
               <p class="empty">no settings implemented yet</p>
             </template>
@@ -111,11 +123,14 @@ function onOffset(e: Event): void {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  height: 450px;
+  box-sizing: border-box;
 }
 .body {
   display: flex;
   gap: 1rem;
-  min-height: 240px;
+  flex: 1;
+  min-height: 0;
 }
 .sidebar {
   display: flex;
@@ -143,6 +158,8 @@ function onOffset(e: Event): void {
 }
 .section {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 0.8rem;

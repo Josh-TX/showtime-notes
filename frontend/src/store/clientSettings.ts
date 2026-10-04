@@ -9,6 +9,7 @@ export interface ClientSettings {
   timelineWidthSeconds: number
   autoScrollLeftOffsetPercent: number
   lastNoteColor: NoteColor
+  autoBecomeListener: boolean
 }
 
 export const SETTING_LIMITS = {
@@ -21,6 +22,7 @@ const defaults: ClientSettings = {
   timelineWidthSeconds: 30,
   autoScrollLeftOffsetPercent: 25,
   lastNoteColor: 'gray',
+  autoBecomeListener: false,
 }
 
 function round2(n: number): number {
@@ -47,6 +49,7 @@ function load(): ClientSettings {
     timelineWidthSeconds: round2(clamp(raw.timelineWidthSeconds, w.min, w.max, defaults.timelineWidthSeconds)),
     autoScrollLeftOffsetPercent: clamp(raw.autoScrollLeftOffsetPercent, o.min, o.max, defaults.autoScrollLeftOffsetPercent),
     lastNoteColor: raw.lastNoteColor && raw.lastNoteColor in NOTE_COLORS ? raw.lastNoteColor : defaults.lastNoteColor,
+    autoBecomeListener: typeof raw.autoBecomeListener === 'boolean' ? raw.autoBecomeListener : defaults.autoBecomeListener,
   }
 }
 
