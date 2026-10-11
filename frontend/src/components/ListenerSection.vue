@@ -185,7 +185,7 @@ async function toggleLiveAudio(): Promise<void> {
         </div>
 
         <div class="big-loudness-meter" title="Live loudness">
-          <div class="big-loudness-fill" :style="{ width: `${Math.round(store.loudness * 100)}%` }" />
+          <div class="big-loudness-fill" :class="`clip-${store.clipLevel}`" :style="{ width: `${Math.round(store.loudness * 100)}%` }" />
         </div>
         <div class="loudness-scale">
           <span>-70 dB</span>
@@ -231,6 +231,12 @@ async function toggleLiveAudio(): Promise<void> {
 .big-loudness-fill {
   height: 100%;
   background: #3ecf5f;
+}
+.big-loudness-fill.clip-1 {
+  background: #ff9a1f;
+}
+.big-loudness-fill.clip-2 {
+  background: #e5372e;
 }
 .loudness-scale {
   display: flex;

@@ -28,6 +28,7 @@ export const useShowStore = defineStore('show', {
     passingBarIndex: null as number | null,
     syncPhase: null as SyncPhase | null,
     loudness: 0,
+    clipLevel: 0 as 0 | 1 | 2,
     isListener: false,
     wantsLiveAudio: false,
   }),
@@ -92,8 +93,9 @@ export const useShowStore = defineStore('show', {
           this.syncPhase = payload.phase
         },
       )
-      ws.on('loudness', (payload: { level: number }) => {
+      ws.on('loudness', (payload: { level: number; clipLevel: 0 | 1 | 2 }) => {
         this.loudness = payload.level
+        this.clipLevel = payload.clipLevel
       })
       ws.connect(deviceName)
       this.connected = true

@@ -12,7 +12,7 @@ const listenerLabel = computed(() =>
   <div class="listener-indicator" role="button" tabindex="0">
     <div class="listener-label">{{ listenerLabel }}</div>
     <div class="loudness-meter" title="Live loudness">
-      <div class="loudness-fill" :style="{ width: `${Math.round(store.loudness * 100)}%` }" />
+      <div class="loudness-fill" :class="`clip-${store.clipLevel}`" :style="{ width: `${Math.round(store.loudness * 100)}%` }" />
     </div>
   </div>
 </template>
@@ -46,5 +46,11 @@ const listenerLabel = computed(() =>
 .loudness-fill {
   height: 100%;
   background: #3ecf5f;
+}
+.loudness-fill.clip-1 {
+  background: #ff9a1f;
+}
+.loudness-fill.clip-2 {
+  background: #e5372e;
 }
 </style>
