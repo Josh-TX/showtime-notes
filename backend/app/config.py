@@ -19,7 +19,7 @@ ROLLING_BUFFER_SECONDS = 4.0  # recording can start up to 3s back; extra second 
 RECORDING_MAX_SECONDS = 20 * 60
 
 # -- persisted audio --
-STORAGE_CODEC = "aac"
-STORAGE_BITRATE_KBPS = 96
+# libsndfile has no direct bitrate setting; for CBR mono this level yields 96 kbps (0 = max bitrate, <1)
+STORAGE_MP3_COMPRESSION_LEVEL = 0.78
 
 SONGS_DIR.mkdir(parents=True, exist_ok=True)

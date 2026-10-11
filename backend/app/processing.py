@@ -1,20 +1,20 @@
 """Recording -> song processing pipeline: WAV wrap -> Demucs (vocals/no-vocals) + beat_this (beats/downbeats) ->
-waveform peaks -> AAC transcode for storage -> reference chroma for sync. Runs off the event loop thread (all of
+waveform peaks -> MP3 encode for storage -> reference chroma for sync. Runs off the event loop thread (all of
 this is blocking CPU/GPU work); progress is reported back via callback so the caller can broadcast it.
 
-Demucs and beat_this both read WAV natively (torchaudio/soundfile) - no ffmpeg needed for that step. ffmpeg is only
-used at the end, to transcode the three final WAVs to AAC for compact, browser-compatible storage/playback.
+Demucs and beat_this both read WAV natively (torchaudio/soundfile), and the final WAVs are encoded to MP3 via
+soundfile's bundled libsndfile for compact, browser-compatible storage/playback - no ffmpeg or system deps.
 """
-import subprocess
 import tempfile
 import wave
 from pathlib import Path
 from typing import Callable
 
 import numpy as np
+import soundfile as sf
 
 from . import chroma, storage
-from .config import CAPTURE_SR, STORAGE_BITRATE_KBPS
+from .config import CAPTURE_SR, STORAGE_MP3_COMPRESSION_LEVEL
 
 PEAKS_PER_SECOND = 30
 NORMALIZE_PERCENTILE = 98
@@ -74,16 +74,14 @@ def _peaks(mono: np.ndarray, sr: int) -> list[float]:
     return [round(float(v), 4) for v in rms]
 
 
-def _transcode_aac(src_wav: Path, dst_aac: Path) -> None:
-    subprocess.run(
-        [
-            "ffmpeg", "-y", "-loglevel", "error",
-            "-i", str(src_wav),
-            "-ac", "1", "-c:a", "aac", "-b:a", f"{STORAGE_BITRATE_KBPS}k",
-            str(dst_aac),
-        ],
-        check=True,
-    )
+def _encode_mp3(src_wav: Path, dst_mp3: Path) -> None:
+    data, sr = sf.read(str(src_wav), dtype="float32", always_2d=True)
+    mono = data.mean(axis=1)
+    with sf.SoundFile(
+        str(dst_mp3), "w", samplerate=sr, channels=1, format="MP3", subtype="MPEG_LAYER_III",
+        bitrate_mode="CONSTANT", compression_level=STORAGE_MP3_COMPRESSION_LEVEL,
+    ) as f:
+        f.write(mono)
 
 
 def process_recording(song_id: str, pcm_int16: np.ndarray, on_progress: ProgressCB) -> float:
@@ -112,9 +110,9 @@ def process_recording(song_id: str, pcm_int16: np.ndarray, on_progress: Progress
         storage.save_chroma(song_id, chroma.compute_chroma(resampled))
         on_progress(0.85, "compressing audio")
 
-        _transcode_aac(original_wav, storage.audio_path(song_id, "original"))
-        _transcode_aac(vocals_wav, storage.audio_path(song_id, "vocals"))
-        _transcode_aac(novocals_wav, storage.audio_path(song_id, "novocals"))
+        _encode_mp3(original_wav, storage.audio_path(song_id, "original"))
+        _encode_mp3(vocals_wav, storage.audio_path(song_id, "vocals"))
+        _encode_mp3(novocals_wav, storage.audio_path(song_id, "novocals"))
         on_progress(1.0, "done")
 
     return duration_seconds

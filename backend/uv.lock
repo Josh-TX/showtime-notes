@@ -2,11 +2,25 @@ version = 1
 revision = 3
 requires-python = ">=3.11, <3.13"
 resolution-markers = [
-    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')",
-    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "(python_full_version < '3.12' and platform_machine != 'x86_64') or (python_full_version < '3.12' and sys_platform != 'darwin')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version >= '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version < '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
 ]
+conflicts = [[
+    { package = "showtime-notes-backend", group = "cpu" },
+    { package = "showtime-notes-backend", group = "cu121" },
+]]
 
 [[package]]
 name = "annotated-doc"
@@ -48,8 +62,14 @@ dependencies = [
     { name = "numpy" },
     { name = "rotary-embedding-torch" },
     { name = "soxr" },
-    { name = "torch" },
-    { name = "torchaudio" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+    { name = "torchaudio", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torchaudio", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torchaudio", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torchaudio", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d1/c4/7ce01e047c1e8d99490e95172d710e08901c24fb24e19a5dd4f885177c99/beat_this-1.1.0.tar.gz", hash = "sha256:3017c741f972972a650edcaccfe5760687fe4f5587feaa98896d90f866c2435c", size = 40635, upload-time = "2026-04-14T10:16:39.5Z" }
 wheels = [
@@ -61,7 +81,7 @@ name = "cffi"
 version = "2.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "pycparser", marker = "implementation_name != 'PyPy'" },
+    { name = "pycparser", marker = "implementation_name != 'PyPy' or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9e/ef/008a1939e372c06329a3fce4279c02f328488f3526744906eeec3da7ad5f/cffi-2.1.1.tar.gz", hash = "sha256:dd31f52ea1086513bb9df30f8fcee9b8918323ae067a3d5b78bc826a000712be", size = 530807, upload-time = "2026-08-03T21:21:18.939Z" }
 wheels = [
@@ -119,11 +139,14 @@ dependencies = [
     { name = "huggingface-hub" },
     { name = "julius" },
     { name = "lameenc" },
-    { name = "numpy", marker = "platform_machine == 'x86_64' and sys_platform == 'darwin'" },
+    { name = "numpy", marker = "(platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
     { name = "pyyaml" },
     { name = "safetensors" },
     { name = "sphn" },
-    { name = "torch" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
     { name = "tqdm" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cd/0a/fe873fc9d9576de2b20fd6421857b189dee951b89305977f6c37416a8d42/demucs-4.1.0.tar.gz", hash = "sha256:d94c4f7dac886595b66af405c0fd1756fa00c297183f1cf021fd2eeedeeb67b2", size = 1244351, upload-time = "2026-07-11T14:52:27.43Z" }
@@ -239,11 +262,11 @@ name = "httpx2"
 version = "2.13.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "anyio", marker = "sys_platform != 'emscripten'" },
-    { name = "httpcore2", marker = "sys_platform != 'emscripten'" },
-    { name = "httpx2-jsfetch", marker = "python_full_version >= '3.12' and sys_platform == 'emscripten'" },
+    { name = "anyio", marker = "sys_platform != 'emscripten' or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "httpcore2", marker = "sys_platform != 'emscripten' or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "httpx2-jsfetch", marker = "(python_full_version >= '3.12' and sys_platform == 'emscripten') or (python_full_version < '3.12' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'emscripten' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
     { name = "idna" },
-    { name = "truststore", marker = "sys_platform != 'emscripten'" },
+    { name = "truststore", marker = "sys_platform != 'emscripten' or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d5/44/474bef2a0e9d90f1715d32cb98b0738695ca17ba324095fb2497ed7fbd59/httpx2-2.13.1.tar.gz", hash = "sha256:e48744a19e3af5ee48313d0ce5fe941d5422fae5705ea922a4aabf94d7800dfa", size = 100405, upload-time = "2026-09-23T07:47:23.052Z" }
@@ -268,7 +291,7 @@ dependencies = [
     { name = "click" },
     { name = "filelock" },
     { name = "fsspec" },
-    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'" },
+    { name = "hf-xet", marker = "platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64' or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
     { name = "httpx2" },
     { name = "packaging" },
     { name = "pyyaml" },
@@ -306,7 +329,10 @@ name = "julius"
 version = "0.2.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "torch" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/1d/c6/5c2aea2b11ead1680bb5b17c996def31f8ccade471cada37cdb93855e06f/julius-0.2.8.tar.gz", hash = "sha256:d691e651200930affea4f6c849c26e95fec846087281ae3d1a7757eac90253d5", size = 48081, upload-time = "2026-06-03T16:05:34.52Z" }
 wheels = [
@@ -392,8 +418,13 @@ name = "networkx"
 version = "3.6.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "(python_full_version < '3.12' and platform_machine != 'x86_64') or (python_full_version < '3.12' and sys_platform != 'darwin')",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version < '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025, upload-time = "2025-12-08T17:02:39.908Z" }
 wheels = [
@@ -405,8 +436,13 @@ name = "networkx"
 version = "3.7"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
-    "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')",
+    "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version >= '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')",
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/dc/76/3af777226b63a5e64a6b36b1ec5855c14e2b94a37096d4760e595fc43511/networkx-3.7.tar.gz", hash = "sha256:fd77a511bd90f39f3d016351345b52cf5319b813bdca01de3f755d3cca62e96a", size = 1866482, upload-time = "2026-09-21T16:45:16.974Z" }
 wheels = [
@@ -443,6 +479,7 @@ version = "12.1.3.1"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/37/6d/121efd7382d5b0284239f4ab1fc1590d86d34ed4a4a2fdb13b30ca8e5740/nvidia_cublas_cu12-12.1.3.1-py3-none-manylinux1_x86_64.whl", hash = "sha256:ee53ccca76a6fc08fb9701aa95b6ceb242cdaab118c3bb152af4e579af792728", size = 410594774, upload-time = "2023-04-19T15:50:03.519Z" },
+    { url = "https://files.pythonhosted.org/packages/c5/ef/32a375b74bea706c93deea5613552f7c9104f961b21df423f5887eca713b/nvidia_cublas_cu12-12.1.3.1-py3-none-win_amd64.whl", hash = "sha256:2b964d60e8cf11b5e1073d179d85fa340c120e99b3067558f3cf98dd69d02906", size = 439918445, upload-time = "2023-04-19T15:56:13.346Z" },
 ]
 
 [[package]]
@@ -451,6 +488,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/00/6b218edd739ecfc60524e585ba8e6b00554dd908de2c9c66c1af3e44e18d/nvidia_cuda_cupti_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:e54fde3983165c624cb79254ae9818a456eb6e87a7fd4d56a2352c24ee542d7e", size = 14109015, upload-time = "2023-04-19T15:47:32.502Z" },
+    { url = "https://files.pythonhosted.org/packages/d0/56/0021e32ea2848c24242f6b56790bd0ccc8bf99f973ca790569c6ca028107/nvidia_cuda_cupti_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:bea8236d13a0ac7190bd2919c3e8e6ce1e402104276e6f9694479e48bb0eb2a4", size = 10154340, upload-time = "2023-04-19T15:53:33.563Z" },
 ]
 
 [[package]]
@@ -459,6 +497,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b6/9f/c64c03f49d6fbc56196664d05dba14e3a561038a81a638eeb47f4d4cfd48/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:339b385f50c309763ca65456ec75e17bbefcbbf2893f462cb8b90584cd27a1c2", size = 23671734, upload-time = "2023-04-19T15:48:32.42Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/1d/f76987c4f454eb86e0b9a0e4f57c3bf1ac1d13ad13cd1a4da4eb0e0c0ce9/nvidia_cuda_nvrtc_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:0a98a522d9ff138b96c010a65e145dc1b4850e9ecb75a0172371793752fd46ed", size = 19331863, upload-time = "2023-04-19T15:54:34.603Z" },
 ]
 
 [[package]]
@@ -467,6 +506,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/d5/c68b1d2cdfcc59e72e8a5949a37ddb22ae6cade80cd4a57a84d4c8b55472/nvidia_cuda_runtime_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:6e258468ddf5796e25f1dc591a31029fa317d97a0a94ed93468fc86301d61e40", size = 823596, upload-time = "2023-04-19T15:47:22.471Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/e2/7a2b4b5064af56ea8ea2d8b2776c0f2960d95c88716138806121ae52a9c9/nvidia_cuda_runtime_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:dfb46ef84d73fababab44cf03e3b83f80700d27ca300e537f85f636fac474344", size = 821226, upload-time = "2023-04-19T15:53:23.082Z" },
 ]
 
 [[package]]
@@ -474,7 +514,7 @@ name = "nvidia-cudnn-cu12"
 version = "8.9.2.26"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu') or (platform_machine == 'x86_64' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ff/74/a2e2be7fb83aaedec84f391f082cf765dfb635e7caa9b49065f73e4835d8/nvidia_cudnn_cu12-8.9.2.26-py3-none-manylinux1_x86_64.whl", hash = "sha256:5ccb288774fdfb07a7e7025ffec286971c06d8d7b4fb162525334616d7629ff9", size = 731725872, upload-time = "2023-06-01T19:24:57.328Z" },
@@ -486,6 +526,7 @@ version = "11.0.2.54"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/86/94/eb540db023ce1d162e7bea9f8f5aa781d57c65aed513c33ee9a5123ead4d/nvidia_cufft_cu12-11.0.2.54-py3-none-manylinux1_x86_64.whl", hash = "sha256:794e3948a1aa71fd817c3775866943936774d1c14e7628c74f6f7417224cdf56", size = 121635161, upload-time = "2023-04-19T15:50:46Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/57/7927a3aa0e19927dfed30256d1c854caf991655d847a4e7c01fe87e3d4ac/nvidia_cufft_cu12-11.0.2.54-py3-none-win_amd64.whl", hash = "sha256:d9ac353f78ff89951da4af698f80870b1534ed69993f10a4cf1d96f21357e253", size = 121344196, upload-time = "2023-04-19T15:56:59.562Z" },
 ]
 
 [[package]]
@@ -494,6 +535,7 @@ version = "10.3.2.106"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/44/31/4890b1c9abc496303412947fc7dcea3d14861720642b49e8ceed89636705/nvidia_curand_cu12-10.3.2.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:9d264c5036dde4e64f1de8c50ae753237c12e0b1348738169cd0f8a536c0e1e0", size = 56467784, upload-time = "2023-04-19T15:51:04.804Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/97/4c9c7c79efcdf5b70374241d48cf03b94ef6707fd18ea0c0f53684931d0b/nvidia_curand_cu12-10.3.2.106-py3-none-win_amd64.whl", hash = "sha256:75b6b0c574c0037839121317e17fd01f8a69fd2ef8e25853d826fec30bdba74a", size = 55995813, upload-time = "2023-04-19T15:57:16.676Z" },
 ]
 
 [[package]]
@@ -501,12 +543,13 @@ name = "nvidia-cusolver-cu12"
 version = "11.4.5.107"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-cublas-cu12" },
-    { name = "nvidia-cusparse-cu12" },
-    { name = "nvidia-nvjitlink-cu12" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu') or (platform_machine == 'x86_64' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu') or (platform_machine == 'x86_64' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu')" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu') or (platform_machine == 'x86_64' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bc/1d/8de1e5c67099015c834315e333911273a8c6aaba78923dd1d1e25fc5f217/nvidia_cusolver_cu12-11.4.5.107-py3-none-manylinux1_x86_64.whl", hash = "sha256:8a7ec542f0412294b15072fa7dab71d31334014a69f953004ea7a118206fe0dd", size = 124161928, upload-time = "2023-04-19T15:51:25.781Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/80/8fca0bf819122a631c3976b6fc517c1b10741b643b94046bd8dd451522c5/nvidia_cusolver_cu12-11.4.5.107-py3-none-win_amd64.whl", hash = "sha256:74e0c3a24c78612192a74fcd90dd117f1cf21dea4822e66d89e8ea80e3cd2da5", size = 121643081, upload-time = "2023-04-19T15:57:43.035Z" },
 ]
 
 [[package]]
@@ -514,10 +557,11 @@ name = "nvidia-cusparse-cu12"
 version = "12.1.0.106"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "nvidia-nvjitlink-cu12" },
+    { name = "nvidia-nvjitlink-cu12", marker = "(platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu') or (platform_machine == 'x86_64' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/5b/cfaeebf25cd9fdec14338ccb16f6b2c4c7fa9163aefcf057d86b9cc248bb/nvidia_cusparse_cu12-12.1.0.106-py3-none-manylinux1_x86_64.whl", hash = "sha256:f3b50f42cf363f86ab21f720998517a659a48131e8d538dc02f8768237bd884c", size = 195958278, upload-time = "2023-04-19T15:51:49.939Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/95/48fdbba24c93614d1ecd35bc6bdc6087bd17cbacc3abc4b05a9c2a1ca232/nvidia_cusparse_cu12-12.1.0.106-py3-none-win_amd64.whl", hash = "sha256:b798237e81b9719373e8fae8d4f091b70a0cf09d9d85c95a557e11df2d8e9a5a", size = 195414588, upload-time = "2023-04-19T15:58:08.389Z" },
 ]
 
 [[package]]
@@ -534,6 +578,8 @@ version = "12.9.86"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/0c/c75bbfb967457a0b7670b8ad267bfc4fffdf341c074e0a80db06c24ccfd4/nvidia_nvjitlink_cu12-12.9.86-py3-none-manylinux2010_x86_64.manylinux_2_12_x86_64.whl", hash = "sha256:e3f1171dbdc83c5932a45f0f4c99180a70de9bd2718c1ab77d14104f6d7147f9", size = 39748338, upload-time = "2025-06-05T20:10:25.613Z" },
+    { url = "https://files.pythonhosted.org/packages/97/bc/2dcba8e70cf3115b400fef54f213bcd6715a3195eba000f8330f11e40c45/nvidia_nvjitlink_cu12-12.9.86-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:994a05ef08ef4b0b299829cde613a424382aff7efb08a7172c1fa616cc3af2ca", size = 39514880, upload-time = "2025-06-05T20:10:04.89Z" },
+    { url = "https://files.pythonhosted.org/packages/dd/7e/2eecb277d8a98184d881fb98a738363fd4f14577a4d2d7f8264266e82623/nvidia_nvjitlink_cu12-12.9.86-py3-none-win_amd64.whl", hash = "sha256:cc6fcec260ca843c10e34c936921a1c426b351753587fdd638e8cff7b16bb9db", size = 35584936, upload-time = "2025-06-05T20:16:08.525Z" },
 ]
 
 [[package]]
@@ -542,6 +588,7 @@ version = "12.1.105"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/da/d3/8057f0587683ed2fcd4dbfbdfdfa807b9160b809976099d36b8f60d08f03/nvidia_nvtx_cu12-12.1.105-py3-none-manylinux1_x86_64.whl", hash = "sha256:dc21cf308ca5691e7c04d962e213f8a4aa9bbfa23d95412f452254c2caeb09e5", size = 99138, upload-time = "2023-04-19T15:48:43.556Z" },
+    { url = "https://files.pythonhosted.org/packages/b8/d7/bd7cb2d95ac6ac6e8d05bfa96cdce69619f1ef2808e072919044c2d47a8c/nvidia_nvtx_cu12-12.1.105-py3-none-win_amd64.whl", hash = "sha256:65f4d98982b31b60026e0e6de73fbdfc09d08a96f4656dd3665ca616a11e1e82", size = 66307, upload-time = "2023-04-19T15:54:45.736Z" },
 ]
 
 [[package]]
@@ -676,7 +723,10 @@ version = "0.8.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "einops" },
-    { name = "torch" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/71/38/74783585b1f0282fddd3faf1abd6dd20977255c27e31737eced2d7ec05f1/rotary_embedding_torch-0.8.9.tar.gz", hash = "sha256:b213f153cad1d108064d930544fb3af678d56515893d3f869a7a146f87997e3f", size = 7497, upload-time = "2025-07-27T01:26:14.675Z" }
 wheels = [
@@ -718,8 +768,19 @@ dependencies = [
     { name = "numpy" },
     { name = "pydantic" },
     { name = "soundfile" },
-    { name = "torchaudio" },
     { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.dev-dependencies]
+cpu = [
+    { name = "torch", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torch", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torchaudio", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "torchaudio", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+]
+cu121 = [
+    { name = "torch", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" } },
+    { name = "torchaudio", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" } },
 ]
 
 [package.metadata]
@@ -730,8 +791,17 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "pydantic", specifier = ">=2.9" },
     { name = "soundfile", specifier = ">=0.12" },
-    { name = "torchaudio", specifier = "==2.2.2" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.32" },
+]
+
+[package.metadata.requires-dev]
+cpu = [
+    { name = "torch", specifier = "==2.2.2", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "showtime-notes-backend", group = "cpu" } },
+    { name = "torchaudio", specifier = "==2.2.2", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "showtime-notes-backend", group = "cpu" } },
+]
+cu121 = [
+    { name = "torch", specifier = "==2.2.2", index = "https://download.pytorch.org/whl/cu121", conflict = { package = "showtime-notes-backend", group = "cu121" } },
+    { name = "torchaudio", specifier = "==2.2.2", index = "https://download.pytorch.org/whl/cu121", conflict = { package = "showtime-notes-backend", group = "cu121" } },
 ]
 
 [[package]]
@@ -818,27 +888,61 @@ wheels = [
 [[package]]
 name = "torch"
 version = "2.2.2"
-source = { registry = "https://pypi.org/simple" }
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "(python_full_version >= '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (python_full_version >= '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin')",
+    "(python_full_version < '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin')",
+]
 dependencies = [
-    { name = "filelock" },
-    { name = "fsspec" },
-    { name = "jinja2" },
-    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
-    { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "nvidia-cublas-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-cupti-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-nvrtc-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cuda-runtime-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cudnn-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cufft-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-curand-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusolver-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-cusparse-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nccl-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "nvidia-nvtx-cu12", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "sympy" },
-    { name = "triton", marker = "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux'" },
-    { name = "typing-extensions" },
+    { name = "filelock", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "fsspec", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "jinja2", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version < '3.12' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version >= '3.12' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version >= '3.12' and sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version < '3.12' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "sympy", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "typing-extensions", marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:59482df5dc40dae105e73f48dd293f4ccc677640822c2ce34273a387549903ae", upload-time = "2024-03-28T15:20:36Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2-cp311-none-macosx_10_9_x86_64.whl", hash = "sha256:4300cbbb4d0428c51b5c194190169018d5b818fd9f6fafc28bbe8fd84ded1740", upload-time = "2024-03-28T15:20:40Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:822a589675cba8acf0457d6a4e5b6ca441ad3b4c3a44a1cbc8f8b31ae796445e", upload-time = "2024-03-28T15:20:47Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:988f2f21b5098700852025ad8ea1f107fb86d146a5a5e278df7a7dd2e42a3b49", upload-time = "2024-03-28T15:20:50Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2-cp312-none-macosx_10_9_x86_64.whl", hash = "sha256:49508cb377ac965185a5c94e18a7719ad386a35e6f0a5f999f542f6e80f3c5ec", upload-time = "2024-03-28T15:20:54Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:4a1323c7d02b916bd3eba9f34b5dd6c63b265c2d086f9ad5f65033395068a6ae", upload-time = "2024-03-28T15:21:01Z" },
+]
+
+[[package]]
+name = "torch"
+version = "2.2.2"
+source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64') or (python_full_version < '3.12' and sys_platform != 'darwin')",
+]
+dependencies = [
+    { name = "filelock", marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "fsspec", marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "jinja2", marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "sympy", marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
+    { name = "triton", marker = "(python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "typing-extensions", marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c3/33/d7a6123231bd4d04c7005dde8507235772f3bc4622a25f3a88c016415d49/torch-2.2.2-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:ad4c03b786e074f46606f4151c0a1e3740268bcf29fbd2fdf6666d66341c1dcb", size = 755555407, upload-time = "2024-03-27T21:09:48.166Z" },
@@ -854,11 +958,101 @@ wheels = [
 ]
 
 [[package]]
+name = "torch"
+version = "2.2.2+cpu"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "filelock", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "fsspec", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "jinja2", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version >= '3.12' and platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version >= '3.12' and platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version >= '3.12' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version < '3.12' and platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version < '3.12' and platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (python_full_version < '3.12' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "sympy", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "typing-extensions", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2%2Bcpu-cp311-cp311-linux_x86_64.whl", hash = "sha256:90089cae572672fb449c8ff1dc1b29daaffa117bf97ede7463dcd2fd1b991e4c", upload-time = "2024-03-28T15:19:18Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2%2Bcpu-cp311-cp311-win_amd64.whl", hash = "sha256:88e63c916e3275fa30a220ee736423a95573b96072ded85e5c0171fd8f37a755", upload-time = "2024-03-28T15:19:27Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2%2Bcpu-cp312-cp312-linux_x86_64.whl", hash = "sha256:431a747b5a880cf8e1fb6d58db6bfafa6768cbec76517d046854537c03323edf", upload-time = "2024-03-28T15:19:35Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torch-2.2.2%2Bcpu-cp312-cp312-win_amd64.whl", hash = "sha256:2b0cf041f878607a361116945f82ce2dba4b7a747151da7619a63cb5fccb72df", upload-time = "2024-03-28T15:19:43Z" },
+]
+
+[[package]]
+name = "torch"
+version = "2.2.2+cu121"
+source = { registry = "https://download.pytorch.org/whl/cu121" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64') or (python_full_version < '3.12' and sys_platform != 'darwin')",
+]
+dependencies = [
+    { name = "filelock", marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+    { name = "fsspec", marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+    { name = "jinja2", marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version < '3.12' and extra == 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "networkx", version = "3.7", source = { registry = "https://pypi.org/simple" }, marker = "(python_full_version >= '3.12' and extra == 'group-22-showtime-notes-backend-cu121') or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cublas-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cuda-cupti-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cuda-nvrtc-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cuda-runtime-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cudnn-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cufft-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-curand-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cusolver-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-cusparse-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-nccl-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "nvidia-nvtx-cu12", marker = "(platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "sympy", marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+    { name = "triton", marker = "(python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cu121') or (python_full_version >= '3.12' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+    { name = "typing-extensions", marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.2.2%2Bcu121-cp311-cp311-linux_x86_64.whl", hash = "sha256:4c94e4d1a22d70abbdff716dec99ba5eff94b4340ffa73b4fb629f940dbb8a75", upload-time = "2024-04-24T17:05:52Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.2.2%2Bcu121-cp311-cp311-win_amd64.whl", hash = "sha256:efbcfdd4399197d06b32f7c0e1711c615188cdd65427b933648c7478fb880b3f", upload-time = "2024-04-24T17:06:20Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.2.2%2Bcu121-cp312-cp312-linux_x86_64.whl", hash = "sha256:badc14d413ff1847d15021a1ec0affa479d24dfc83e6d51b9b4b9fbfaad1b14c", upload-time = "2024-04-24T17:07:56Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torch-2.2.2%2Bcu121-cp312-cp312-win_amd64.whl", hash = "sha256:5b5b91c7fcda5f02e5e5644a32f593c6c17f301a1180213e353e34b51cc63b9f", upload-time = "2024-04-24T17:08:26Z" },
+]
+
+[[package]]
+name = "torchaudio"
+version = "2.2.2"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "(python_full_version >= '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (python_full_version >= '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin')",
+    "(python_full_version < '3.12' and platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux') or (python_full_version < '3.12' and platform_machine != 'x86_64' and sys_platform == 'darwin')",
+]
+dependencies = [
+    { name = "torch", version = "2.2.2", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine == 'aarch64' and platform_python_implementation == 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_machine != 'aarch64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_python_implementation != 'CPython' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2-cp311-cp311-linux_aarch64.whl", hash = "sha256:0a03a48b6d55d17d48f419a7f1d0d4018d48a04c76585c16a9b5e69281f92f94", upload-time = "2024-03-28T15:21:39Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:f1a81a518a3e86c004125eb891fc433ce8fb2343295b5d612d0f37b24e131efd", upload-time = "2024-03-28T15:21:39Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:01482fc85117f85ee44f8aa8e9c11b1c022326173e0748789ed42b219102937f", upload-time = "2024-03-28T15:21:40Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2-cp312-cp312-linux_aarch64.whl", hash = "sha256:9db0338bd3a78e60c745b6b5c366e4c9b88eb210e1fdd617d3f62f1a0b859ea4", upload-time = "2024-03-28T15:21:41Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:da3cc523696166ea525d2b3377d789da5388f36d94a20a324b09df00f1c43458", upload-time = "2024-03-28T15:21:41Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:8fc7aac4f4b24e9b3fa03a2a7933363f7e5c484835ccb2a20cf164a0e5e715b7", upload-time = "2024-03-28T15:21:42Z" },
+]
+
+[[package]]
 name = "torchaudio"
 version = "2.2.2"
 source = { registry = "https://pypi.org/simple" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64') or (python_full_version < '3.12' and sys_platform != 'darwin')",
+]
 dependencies = [
-    { name = "torch" },
+    { name = "torch", version = "2.2.2", source = { registry = "https://pypi.org/simple" }, marker = "(extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (extra != 'group-22-showtime-notes-backend-cpu' and extra != 'group-22-showtime-notes-backend-cu121')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/57/c4/80cc3315dd1ca706643b78f894901d4d888ffe376a5e401f73d9db61071e/torchaudio-2.2.2-cp311-cp311-macosx_10_13_x86_64.whl", hash = "sha256:f1a81a518a3e86c004125eb891fc433ce8fb2343295b5d612d0f37b24e131efd", size = 3405553, upload-time = "2024-03-27T21:12:19.497Z" },
@@ -874,11 +1068,49 @@ wheels = [
 ]
 
 [[package]]
+name = "torchaudio"
+version = "2.2.2+cpu"
+source = { registry = "https://download.pytorch.org/whl/cpu" }
+resolution-markers = [
+    "(python_full_version >= '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux') or (python_full_version >= '3.12' and sys_platform != 'darwin' and sys_platform != 'linux')",
+    "(python_full_version < '3.12' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.12' and platform_python_implementation != 'CPython' and sys_platform == 'linux') or (python_full_version < '3.12' and sys_platform != 'darwin' and sys_platform != 'linux')",
+]
+dependencies = [
+    { name = "torch", version = "2.2.2+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(platform_machine != 'aarch64' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (platform_python_implementation != 'CPython' and sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform != 'darwin' and sys_platform != 'linux' and extra == 'group-22-showtime-notes-backend-cpu') or (sys_platform == 'darwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'linux' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2%2Bcpu-cp311-cp311-linux_x86_64.whl", hash = "sha256:144767aad7609ee7c0dfe9f163003db584aaab3bc69db388d56dad3772a267d4", upload-time = "2024-03-28T15:21:33Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2%2Bcpu-cp311-cp311-win_amd64.whl", hash = "sha256:6e718df4834f9cef28b7dc1edc9ceabfe477d4dbd5527b51234e96bf91465d9d", upload-time = "2024-03-28T15:21:33Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2%2Bcpu-cp312-cp312-linux_x86_64.whl", hash = "sha256:6adffc55d7a42e5dab86c23f1a2287529a073160e5cc241269e467561a7513ee", upload-time = "2024-03-28T15:21:34Z" },
+    { url = "https://download-r2.pytorch.org/whl/cpu/torchaudio-2.2.2%2Bcpu-cp312-cp312-win_amd64.whl", hash = "sha256:56ff742be82ce4445e45b4a1d6c72be7de4cbc528e4ef5638279bc8ca820ec36", upload-time = "2024-03-28T15:21:34Z" },
+]
+
+[[package]]
+name = "torchaudio"
+version = "2.2.2+cu121"
+source = { registry = "https://download.pytorch.org/whl/cu121" }
+resolution-markers = [
+    "python_full_version >= '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "python_full_version < '3.12' and platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "(python_full_version >= '3.12' and platform_machine != 'x86_64') or (python_full_version >= '3.12' and sys_platform != 'darwin')",
+    "(python_full_version < '3.12' and platform_machine != 'x86_64') or (python_full_version < '3.12' and sys_platform != 'darwin')",
+]
+dependencies = [
+    { name = "torch", version = "2.2.2+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "extra == 'group-22-showtime-notes-backend-cu121'" },
+]
+wheels = [
+    { url = "https://download-r2.pytorch.org/whl/cu121/torchaudio-2.2.2%2Bcu121-cp311-cp311-linux_x86_64.whl", hash = "sha256:0e074d05c2258b3014dda02eef007ad17ab44cfd01d9780c9a914e5d972ac00b", upload-time = "2024-04-24T17:25:03Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torchaudio-2.2.2%2Bcu121-cp311-cp311-win_amd64.whl", hash = "sha256:c7dee68cd3d2b889bab71d4a0c345bdc3ea2fe79a62b921a6b49292c605b6071", upload-time = "2024-04-24T17:25:04Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torchaudio-2.2.2%2Bcu121-cp312-cp312-linux_x86_64.whl", hash = "sha256:06ae5a27facee19b1fedbc2cb271179ae60e3d04ac650e75f4ed3087a3e52123", upload-time = "2024-04-24T17:25:04Z" },
+    { url = "https://download-r2.pytorch.org/whl/cu121/torchaudio-2.2.2%2Bcu121-cp312-cp312-win_amd64.whl", hash = "sha256:47ded9541c0e633da8357dfd5ca07fd5fdd53a57fd302e1a976f581193c3f9f4", upload-time = "2024-04-24T17:25:05Z" },
+]
+
+[[package]]
 name = "tqdm"
 version = "4.70.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
 wheels = [
@@ -890,7 +1122,7 @@ name = "triton"
 version = "2.2.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock" },
+    { name = "filelock", marker = "(platform_machine != 'x86_64' and extra != 'group-22-showtime-notes-backend-cpu') or (platform_machine == 'x86_64' and extra == 'group-22-showtime-notes-backend-cu121') or (platform_machine != 'x86_64' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform != 'darwin' and extra != 'group-22-showtime-notes-backend-cpu')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/bd/ac/3974caaa459bf2c3a244a84be8d17561f631f7d42af370fc311defeca2fb/triton-2.2.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:da58a152bddb62cafa9a857dd2bc1f886dbf9f9c90a2b5da82157cd2b34392b0", size = 167928356, upload-time = "2024-01-10T03:12:05.923Z" },
@@ -945,7 +1177,7 @@ standard = [
     { name = "httptools" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "uvloop", marker = "platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'" },
+    { name = "uvloop", marker = "(platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32') or (platform_python_implementation == 'PyPy' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'cygwin' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121') or (sys_platform == 'win32' and extra == 'group-22-showtime-notes-backend-cpu' and extra == 'group-22-showtime-notes-backend-cu121')" },
     { name = "watchfiles" },
     { name = "websockets" },
 ]

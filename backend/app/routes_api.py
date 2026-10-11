@@ -54,7 +54,7 @@ async def get_audio(song_id: str, stem: str):
     path = storage.audio_path(song_id, stem)
     if not path.exists():
         raise HTTPException(404, "audio not available yet")
-    return FileResponse(path, media_type="audio/aac")
+    return FileResponse(path, media_type="audio/mpeg")
 
 
 # -- song mutation --

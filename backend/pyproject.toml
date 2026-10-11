@@ -9,7 +9,6 @@ dependencies = [
     "pydantic>=2.9",
     "demucs>=4.1.0",
     "beat_this>=1.1.0",
-    "torchaudio==2.2.2",
     "soundfile>=0.12",
 ]
 
@@ -23,3 +22,33 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 artifacts = ["app/static"]
+
+# torch: CPU build by default (small install). For NVIDIA GPUs: uv sync --no-default-groups --group cu121
+# (or `uv run --no-default-groups --group cu121 showtime-notes`). The two groups are mutually exclusive.
+[dependency-groups]
+cpu = ["torch==2.2.2", "torchaudio==2.2.2"]
+cu121 = ["torch==2.2.2", "torchaudio==2.2.2"]
+
+[tool.uv]
+default-groups = ["cpu"]
+conflicts = [[{ group = "cpu" }, { group = "cu121" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", group = "cpu" },
+    { index = "pytorch-cu121", group = "cu121" },
+]
+torchaudio = [
+    { index = "pytorch-cpu", group = "cpu" },
+    { index = "pytorch-cu121", group = "cu121" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true

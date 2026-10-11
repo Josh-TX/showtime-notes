@@ -3,9 +3,9 @@
 backend/data/
   show.json                        - song order (ids) + show-level settings
   songs/{id}/meta.json              - Song model (name, status, free/timeline notes, duration)
-  songs/{id}/original.aac           - full mix, transcoded post-processing
-  songs/{id}/vocals.aac
-  songs/{id}/novocals.aac
+  songs/{id}/original.mp3           - full mix, transcoded post-processing
+  songs/{id}/vocals.mp3
+  songs/{id}/novocals.mp3
   songs/{id}/peaks.json             - {"vocals": [...], "novocals": [...]} waveform peaks, one value per pixel-ish step
   songs/{id}/beats.json             - {"beats": [...], "downbeats": [...]} seconds
   songs/{id}/chroma.npy             - precomputed reference chroma features (float32, (n_frames, FEATURE_DIM)), for sync
@@ -30,7 +30,7 @@ def meta_path(song_id: str):
 
 
 def audio_path(song_id: str, stem: str):
-    return song_dir(song_id) / f"{stem}.aac"
+    return song_dir(song_id) / f"{stem}.mp3"
 
 
 def peaks_path(song_id: str):
