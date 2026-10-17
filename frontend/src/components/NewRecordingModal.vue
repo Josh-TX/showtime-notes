@@ -7,12 +7,20 @@ import { ws } from '../ws'
 const WINDOW_SECONDS = 3
 const CLOCK_TICK_MS = 100
 const MAX_PEAK_SECONDS = 5
-// Subtle fixed contrast (stateless, so bars never change once drawn): levels under FLOOR are flat, the rest is
-// rescaled and curved so quiet stays quiet. Much gentler than the recording timeline's adaptive stretch.
-const LEVEL_FLOOR = 0.35
-const LEVEL_CURVE = 2
+// Bar height is linear in dB, in two segments: a steep one from SILENCE_DB (0) to KNEE_DB (KNEE_HEIGHT), then a flatter
+// one up to CEIL_DB (1). Stateless, so bars never change once drawn. The server sends levels as dB mapped from
+// SERVER_FLOOR_DB..SERVER_CEIL_DB onto 0..1 (audio_buffer.level_from_samples); undo that to get dB back.
+const SERVER_FLOOR_DB = -70
+const SERVER_CEIL_DB = -10
+const SILENCE_DB = -55
+const KNEE_DB = -20
+const CEIL_DB = -5
+const KNEE_HEIGHT = 0.8
 function shape(level: number): number {
-  return Math.max(0, (level - LEVEL_FLOOR) / (1 - LEVEL_FLOOR)) ** LEVEL_CURVE
+  const db = SERVER_FLOOR_DB + level * (SERVER_CEIL_DB - SERVER_FLOOR_DB)
+  if (db <= SILENCE_DB) return 0
+  if (db <= KNEE_DB) return ((db - SILENCE_DB) / (KNEE_DB - SILENCE_DB)) * KNEE_HEIGHT
+  return Math.min(1, KNEE_HEIGHT + ((db - KNEE_DB) / (CEIL_DB - KNEE_DB)) * (1 - KNEE_HEIGHT))
 }
 const OFFSETS = [3, 2, 1]
 const MARKER_LABELS = ['3s ago', '2s ago', '1s ago', 'now']

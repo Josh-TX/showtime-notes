@@ -156,7 +156,8 @@ function onAutoSelectNext(e: Event): void {
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
-  height: 450px;
+  height: 500px;
+  max-height: 90vh;
   box-sizing: border-box;
 }
 .body {

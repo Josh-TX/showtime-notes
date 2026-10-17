@@ -4,7 +4,7 @@ change."""
 from . import storage, ws_manager
 from .aligner import LiveAligner
 from .audio_buffer import RecordingBuffer, RollingBuffer
-from .models import ClientInfo, FavoriteNote, ListenerInfo, Song, SongStatus, SongSummary, ShowInfo, SyncState
+from .models import ClientInfo, FavoriteNote, ListenerInfo, ServerSettings, Song, SongStatus, SongSummary, ShowInfo, SyncState
 
 FAVORITE_COLUMNS = 3
 
@@ -14,6 +14,7 @@ class ServerState:
         show = storage.load_show()
         self.song_order: list[str] = show["songOrder"]
         self.acquire_start_range_seconds: float = show["acquireStartRangeSeconds"]
+        self.input_gain_db: float = show.get("inputGainDb", 0.0)
 
         self.favorites: list[list[FavoriteNote]] = [[] for _ in range(FAVORITE_COLUMNS)]
         for column, saved in zip(self.favorites, show.get("favorites", [])):
@@ -52,6 +53,7 @@ class ServerState:
         storage.save_show(
             self.song_order,
             self.acquire_start_range_seconds,
+            self.input_gain_db,
             [[f.model_dump() for f in column] for column in self.favorites],
         )
 
@@ -66,6 +68,9 @@ class ServerState:
             sync=self.sync,
             clients=[ClientInfo(device_name=n) for n in ws_manager.manager.device_names()],
             favorites=self.favorites,
+            settings=ServerSettings(
+                acquire_start_range_seconds=self.acquire_start_range_seconds, input_gain_db=self.input_gain_db
+            ),
         )
 
     # -- mutation + broadcast --

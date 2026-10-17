@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import Field
 
 from . import recording, storage, sync_service
 from .audio_buffer import LIVE_PEAKS_PER_SECOND
@@ -9,6 +10,9 @@ from .models import AcquireMode, ApiModel, FavoriteNote, NoteColor, Song, Timeli
 from .state import state
 
 router = APIRouter(prefix="/api")
+
+INPUT_GAIN_MIN_DB = -12.0
+INPUT_GAIN_MAX_DB = 24.0
 
 
 def _song_or_404(song_id: str) -> Song:
@@ -332,13 +336,17 @@ async def stop_sync():
     return state.to_show_info().model_dump(by_alias=True)
 
 
-class AcquireStartRangeBody(ApiModel):
-    seconds: float
+class SettingsPatch(ApiModel):
+    acquire_start_range_seconds: float | None = None
+    input_gain_db: float | None = Field(default=None, ge=INPUT_GAIN_MIN_DB, le=INPUT_GAIN_MAX_DB)
 
 
-@router.put("/settings/acquire-start-range")
-async def set_acquire_start_range(body: AcquireStartRangeBody):
-    state.acquire_start_range_seconds = body.seconds
+@router.put("/settings")
+async def update_settings(body: SettingsPatch):
+    if body.acquire_start_range_seconds is not None:
+        state.acquire_start_range_seconds = body.acquire_start_range_seconds
+    if body.input_gain_db is not None:
+        state.input_gain_db = body.input_gain_db
     state.persist_show()
     await state.broadcast_show()
     return {"ok": True}

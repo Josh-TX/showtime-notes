@@ -5,6 +5,8 @@ import { ws } from '../ws'
 export const captureState = reactive<{ kind: 'mic' | 'tab' | null }>({ kind: null })
 
 let seq = 0
+let gainNode: GainNode | null = null
+let gainDb = 0
 let audioContext: AudioContext | null = null
 let stream: MediaStream | null = null
 
@@ -26,7 +28,17 @@ async function pipeStream(mediaStream: MediaStream): Promise<void> {
     message.set(new Uint8Array(pcm.buffer), 8)
     ws.sendBinary(message.buffer)
   }
-  source.connect(node)
+  gainNode = audioContext.createGain()
+  gainNode.gain.value = dbToLinear(gainDb)
+  source.connect(gainNode).connect(node)
+}
+
+const dbToLinear = (db: number) => 10 ** (db / 20)
+
+// The server's input gain setting; applied to the listener's audio before it's converted to int16 and streamed.
+export function setCaptureGainDb(db: number): void {
+  gainDb = db
+  if (gainNode) gainNode.gain.value = dbToLinear(db)
 }
 
 export async function startCapture(deviceId?: string): Promise<void> {
@@ -67,6 +79,7 @@ export function stopCapture(): void {
   audioContext?.close()
   stream = null
   audioContext = null
+  gainNode = null
   seq = 0
   captureState.kind = null
 }

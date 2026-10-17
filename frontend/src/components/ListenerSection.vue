@@ -5,6 +5,10 @@ import { captureState, getCaptureDeviceId, startCapture, startTabCapture, stopCa
 import { startPlayback, stopPlayback, pushPlaybackChunk } from '../audio/playback'
 import { ws } from '../ws'
 import { clientSettings } from '../store/clientSettings'
+import { api } from '../api'
+
+const GAIN_MIN_DB = -12
+const GAIN_MAX_DB = 24
 
 const store = useShowStore()
 const devices = ref<MediaDeviceInfo[]>([])
@@ -23,6 +27,22 @@ const modeChoiceVisible = computed(
 const becomeListenerLabel = computed(() =>
   store.show?.listener.deviceName ? 'Take over being the listener' : 'Become the listener',
 )
+
+// Input gain is a server setting: the slider shows a local draft while dragging and only sends on release
+const gainDraft = ref(0)
+watch(
+  () => store.show?.settings.inputGainDb ?? 0,
+  (db) => (gainDraft.value = db),
+  { immediate: true },
+)
+const gainLabel = computed(() => `${gainDraft.value > 0 ? '+' : ''}${gainDraft.value} dB`)
+function commitGain(): void {
+  api.updateSettings({ inputGainDb: gainDraft.value })
+}
+function resetGain(): void {
+  gainDraft.value = 0
+  commitGain()
+}
 
 watch(
   () => store.isListener,
@@ -192,6 +212,21 @@ async function toggleLiveAudio(): Promise<void> {
           <span>-40 dB</span>
           <span>-10 dB</span>
         </div>
+
+        <div class="gain-row">
+          <label for="input-gain">Input gain</label>
+          <input
+            id="input-gain"
+            v-model.number="gainDraft"
+            type="range"
+            :min="GAIN_MIN_DB"
+            :max="GAIN_MAX_DB"
+            step="1"
+            @change="commitGain"
+          />
+          <span class="gain-value">{{ gainLabel }}</span>
+          <button class="text-button" :disabled="gainDraft === 0" @click="resetGain">Reset</button>
+        </div>
   </div>
 </template>
 
@@ -244,6 +279,20 @@ async function toggleLiveAudio(): Promise<void> {
   font-size: 0.75rem;
   color: #888;
   margin-top: -5px;
+}
+.gain-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: #ccc;
+}
+.gain-row input[type='range'] {
+  flex: 1;
+}
+.gain-value {
+  min-width: 4.5ch;
+  text-align: right;
 }
 .status-row {
   display: flex;

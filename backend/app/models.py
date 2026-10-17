@@ -144,9 +144,15 @@ class ClientInfo(ApiModel):
     device_name: str
 
 
+class ServerSettings(ApiModel):
+    acquire_start_range_seconds: float
+    input_gain_db: float  # listener applies this gain to its input before streaming; not shown on the settings page
+
+
 class ShowInfo(ApiModel):
     songs: list[SongSummary]
     listener: ListenerInfo
     sync: SyncState
     clients: list[ClientInfo]
     favorites: list[list[FavoriteNote]] = []  # one list per column, top to bottom
+    settings: ServerSettings

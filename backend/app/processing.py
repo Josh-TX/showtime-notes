@@ -18,11 +18,11 @@ from .config import CAPTURE_SR, STORAGE_MP3_COMPRESSION_LEVEL
 
 PEAKS_PER_SECOND = 30
 NORMALIZE_PERCENTILE = 98
-# Normalization gain ramps (log-space) with the percentile RMS (linear): at/below NO_SCALE_BELOW (~-40 dBFS) no
-# scaling, so quiet stems (e.g. demucs bleed on instrumental songs) stay flat; at/above FULL_SCALE_ABOVE (~-26 dBFS)
-# full scaling so the percentile reaches 1.0.
-NO_SCALE_BELOW = 0.01
-FULL_SCALE_ABOVE = 0.05
+# Normalization gain ramps (linearly in dB) with the percentile RMS level: at/below NO_SCALE_BELOW_DB no scaling,
+# so quiet stems (e.g. demucs bleed on instrumental songs) stay flat; at/above FULL_SCALE_ABOVE_DB full scaling so
+# the percentile reaches 1.0.
+NO_SCALE_BELOW_DB = -50.0
+FULL_SCALE_ABOVE_DB = -35.0
 
 ProgressCB = Callable[[float, str], None]  # (fraction done, what's happening next)
 
@@ -68,9 +68,11 @@ def _peaks(mono: np.ndarray, sr: int) -> list[float]:
     rms = np.sqrt(np.mean(np.square(trimmed), axis=1))
     percentile = float(np.percentile(rms, NORMALIZE_PERCENTILE))
     if percentile > 0:
-        ramp = (percentile - NO_SCALE_BELOW) / (FULL_SCALE_ABOVE - NO_SCALE_BELOW)
+        percentile_db = 20.0 * np.log10(percentile)
+        ramp = (percentile_db - NO_SCALE_BELOW_DB) / (FULL_SCALE_ABOVE_DB - NO_SCALE_BELOW_DB)
         ramp = min(max(ramp, 0.0), 1.0)
-        rms = np.clip(rms * (1.0 / percentile) ** ramp, 0.0, 1.0)
+        gain_db = ramp * -percentile_db
+        rms = np.clip(rms * 10.0 ** (gain_db / 20.0), 0.0, 1.0)
     return [round(float(v), 4) for v in rms]
 
 

@@ -101,12 +101,18 @@ export interface ClientInfo {
   deviceName: string
 }
 
+export interface ServerSettings {
+  acquireStartRangeSeconds: number
+  inputGainDb: number
+}
+
 export interface ShowInfo {
   songs: SongSummary[]
   listener: ListenerInfo
   sync: SyncState
   clients: ClientInfo[]
   favorites: FavoriteNote[][] // one list per column, top to bottom
+  settings: ServerSettings
 }
 
 export interface ConfidenceBar {

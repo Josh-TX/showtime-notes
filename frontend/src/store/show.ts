@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { api } from '../api'
 import { ws } from '../ws'
+import { setCaptureGainDb } from '../audio/capture'
 import type { ConfidenceBar, Song, ShowInfo, SongSummary, SyncCandidate, SyncPhase, Waveform } from '../types'
 
 const LIVE_PEAKS_PER_SECOND = 50
@@ -46,6 +47,7 @@ export const useShowStore = defineStore('show', {
       this.deviceName = deviceName
       ws.on('show_update', (payload: ShowInfo) => {
         this.show = payload
+        setCaptureGainDb(payload.settings.inputGainDb)
         if (payload.listener.deviceName !== deviceName) this.isListener = false
         if (this.selectedSongId && !payload.songs.some((s) => s.id === this.selectedSongId)) {
           this.selectedSongId = null
@@ -99,7 +101,10 @@ export const useShowStore = defineStore('show', {
       })
       ws.connect(deviceName)
       this.connected = true
-      api.getState().then((state) => (this.show = state))
+      api.getState().then((state) => {
+        this.show = state
+        setCaptureGainDb(state.settings.inputGainDb)
+      })
     },
 
     _onSongUpdate(song: Song): void {

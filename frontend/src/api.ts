@@ -52,5 +52,6 @@ export const api = {
     request<ShowInfo>('POST', '/sync/start', { songId, mode, viewportLoSeconds, viewportHiSeconds }),
   stopSync: () => request<ShowInfo>('POST', '/sync/stop'),
 
-  setAcquireStartRange: (seconds: number) => request<void>('PUT', '/settings/acquire-start-range', { seconds }),
+  updateSettings: (patch: { acquireStartRangeSeconds?: number; inputGainDb?: number }) =>
+    request<void>('PUT', '/settings', patch),
 }
