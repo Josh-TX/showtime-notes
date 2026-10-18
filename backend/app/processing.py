@@ -23,6 +23,11 @@ NORMALIZE_PERCENTILE = 98
 # the percentile reaches 1.0.
 NO_SCALE_BELOW_DB = -50.0
 FULL_SCALE_ABOVE_DB = -35.0
+# The louder stem (by percentile level) always uses its own gain. The quieter stem is "caught up" to the louder
+# one's gain as the gap grows, so a stem with only trace bleed isn't blown up to look like real content:
+# gap <= CATCHUP_START_DB: own gain; gap >= CATCHUP_FULL_DB: the louder stem's gain; linear (in dB) between.
+CATCHUP_START_DB = 6.0
+CATCHUP_FULL_DB = 18.0
 
 ProgressCB = Callable[[float, str], None]  # (fraction done, what's happening next)
 
@@ -61,19 +66,45 @@ def _detect_beats(wav_path: Path) -> tuple[list[float], list[float]]:
     return [float(b) for b in beats], [float(d) for d in downbeats]
 
 
-def _peaks(mono: np.ndarray, sr: int) -> list[float]:
+def _rms(mono: np.ndarray, sr: int) -> np.ndarray:
     bucket = max(1, int(sr / PEAKS_PER_SECOND))
     n_buckets = max(1, len(mono) // bucket)
     trimmed = mono[: n_buckets * bucket].reshape(n_buckets, bucket)
-    rms = np.sqrt(np.mean(np.square(trimmed), axis=1))
+    return np.sqrt(np.mean(np.square(trimmed), axis=1))
+
+
+def _percentile_db(rms: np.ndarray) -> float | None:
     percentile = float(np.percentile(rms, NORMALIZE_PERCENTILE))
-    if percentile > 0:
-        percentile_db = 20.0 * np.log10(percentile)
-        ramp = (percentile_db - NO_SCALE_BELOW_DB) / (FULL_SCALE_ABOVE_DB - NO_SCALE_BELOW_DB)
-        ramp = min(max(ramp, 0.0), 1.0)
-        gain_db = ramp * -percentile_db
-        rms = np.clip(rms * 10.0 ** (gain_db / 20.0), 0.0, 1.0)
-    return [round(float(v), 4) for v in rms]
+    return 20.0 * np.log10(percentile) if percentile > 0 else None
+
+
+def _own_gain_db(level_db: float | None) -> float:
+    if level_db is None:
+        return 0.0
+    ramp = (level_db - NO_SCALE_BELOW_DB) / (FULL_SCALE_ABOVE_DB - NO_SCALE_BELOW_DB)
+    return min(max(ramp, 0.0), 1.0) * -level_db
+
+
+def _apply_gain(rms: np.ndarray, gain_db: float) -> list[float]:
+    scaled = np.clip(rms * 10.0 ** (gain_db / 20.0), 0.0, 1.0)
+    return [round(float(v), 4) for v in scaled]
+
+
+def _peaks_pair(
+    vocals_rms: np.ndarray, novocals_rms: np.ndarray
+) -> tuple[list[float], list[float]]:
+    """Waveform peaks for both stems; the quieter stem's gain is pulled toward the louder stem's (see CATCHUP_*)."""
+    levels = [_percentile_db(vocals_rms), _percentile_db(novocals_rms)]
+    own = [_own_gain_db(level) for level in levels]
+    if levels[0] is None or levels[1] is None:
+        gains = own
+    else:
+        loud, quiet = (0, 1) if levels[0] >= levels[1] else (1, 0)
+        gap = levels[loud] - levels[quiet]
+        w = min(max((gap - CATCHUP_START_DB) / (CATCHUP_FULL_DB - CATCHUP_START_DB), 0.0), 1.0)
+        gains = list(own)
+        gains[quiet] = (1.0 - w) * own[quiet] + w * own[loud]
+    return _apply_gain(vocals_rms, gains[0]), _apply_gain(novocals_rms, gains[1])
 
 
 def _encode_mp3(src_wav: Path, dst_mp3: Path) -> None:
@@ -103,7 +134,7 @@ def process_recording(song_id: str, pcm_int16: np.ndarray, on_progress: Progress
 
         vocals_mono, vocals_sr = _load_wav_mono_float(vocals_wav)
         novocals_mono, novocals_sr = _load_wav_mono_float(novocals_wav)
-        storage.save_peaks(song_id, _peaks(vocals_mono, vocals_sr), _peaks(novocals_mono, novocals_sr))
+        storage.save_peaks(song_id, *_peaks_pair(_rms(vocals_mono, vocals_sr), _rms(novocals_mono, novocals_sr)))
         storage.save_beats(song_id, beats, downbeats)
         on_progress(0.8, "computing chroma")
 
