@@ -9,6 +9,16 @@ import { api } from '../api'
 
 const GAIN_MIN_DB = -12
 const GAIN_MAX_DB = 24
+// Must match backend level_from_samples (linear dB map)
+const METER_FLOOR_DB = -65
+const METER_CEIL_DB = -5
+const REC_MIN_DB = -35
+const REC_MAX_DB = -10
+const PEAK_HOLD_MS = 500
+const PEAK_FALL_PER_SEC = 0.2
+const dbToFrac = (db: number): number => (db - METER_FLOOR_DB) / (METER_CEIL_DB - METER_FLOOR_DB)
+const recStartPct = dbToFrac(REC_MIN_DB) * 100
+const recWidthPct = (dbToFrac(REC_MAX_DB) - dbToFrac(REC_MIN_DB)) * 100
 
 const store = useShowStore()
 const devices = ref<MediaDeviceInfo[]>([])
@@ -44,6 +54,34 @@ function resetGain(): void {
   commitGain()
 }
 
+// Peak tick: jumps up with level, holds, then falls
+const peakLevel = ref(0)
+let peakHoldUntil = 0
+let lastFrame = 0
+let rafId = 0
+watch(
+  () => store.loudness,
+  (level) => {
+    if (level >= peakLevel.value) {
+      peakLevel.value = level
+      peakHoldUntil = performance.now() + PEAK_HOLD_MS
+    }
+  },
+)
+function peakFrame(now: number): void {
+  const dt = lastFrame ? (now - lastFrame) / 1000 : 0
+  lastFrame = now
+  if (now > peakHoldUntil && peakLevel.value > store.loudness) {
+    peakLevel.value = Math.max(store.loudness, peakLevel.value - PEAK_FALL_PER_SEC * dt)
+  }
+  rafId = requestAnimationFrame(peakFrame)
+}
+const peakLabel = computed(() =>
+  peakLevel.value <= 0.001
+    ? '-∞ dB'
+    : `${Math.round(METER_FLOOR_DB + peakLevel.value * (METER_CEIL_DB - METER_FLOOR_DB))} dB`,
+)
+
 watch(
   () => store.isListener,
   (isListener) => {
@@ -52,10 +90,12 @@ watch(
 )
 
 onMounted(() => {
+  rafId = requestAnimationFrame(peakFrame)
   if (captureState.kind === 'mic') refreshDevices()
 })
 
 onBeforeUnmount(() => {
+  cancelAnimationFrame(rafId)
   if (store.wantsLiveAudio) stopLiveAudio()
 })
 
@@ -204,13 +244,21 @@ async function toggleLiveAudio(): Promise<void> {
           </template>
         </div>
 
-        <div class="big-loudness-meter" title="Live loudness">
-          <div class="big-loudness-fill" :class="`clip-${store.clipLevel}`" :style="{ width: `${Math.round(store.loudness * 100)}%` }" />
+        <div class="meter-header">
+          <span class="rec-label">Recommended Peak: -35 to -10 dB</span>
+          <span class="peak-label">Peak {{ peakLabel }}</span>
+        </div>
+        <div class="rec-range"><div class="rec-line" :style="{ left: `${recStartPct}%`, width: `${recWidthPct}%` }" /></div>
+        <div class="meter-wrap">
+          <div class="big-loudness-meter" title="Live loudness">
+            <div class="big-loudness-fill" :class="`clip-${store.clipLevel}`" :style="{ width: `${Math.round(store.loudness * 100)}%` }" />
+          </div>
+          <div class="peak-tick" :style="{ left: `${peakLevel * 100}%` }" />
         </div>
         <div class="loudness-scale">
-          <span>-70 dB</span>
-          <span>-40 dB</span>
-          <span>-10 dB</span>
+          <span>-65 dB</span>
+          <span>-35 dB</span>
+          <span>-5 dB</span>
         </div>
 
         <div class="gain-row">
@@ -272,6 +320,55 @@ async function toggleLiveAudio(): Promise<void> {
 }
 .big-loudness-fill.clip-2 {
   background: #e5372e;
+}
+.meter-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-bottom: -0.4rem;
+}
+.rec-label {
+  color: #4da3ff;
+}
+.peak-label {
+  color: #4da3ff;
+}
+.rec-range {
+  position: relative;
+  height: 1px;
+  margin-bottom: -0.3rem;
+}
+.rec-line {
+  position: absolute;
+  top: 0;
+  height: 1px;
+  background: #4da3ff;
+}
+.rec-line::before,
+.rec-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 4px;
+  background: #4da3ff;
+}
+.rec-line::before {
+  left: 0;
+}
+.rec-line::after {
+  right: 0;
+}
+.meter-wrap {
+  position: relative;
+}
+.peak-tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: #4da3ff;
 }
 .loudness-scale {
   display: flex;

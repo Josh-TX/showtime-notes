@@ -9,8 +9,8 @@ from .config import CAPTURE_SR, RECORDING_MAX_SECONDS, ROLLING_BUFFER_SECONDS
 LIVE_PEAKS_PER_SECOND = 50
 _PEAK_WINDOW_SAMPLES = int(CAPTURE_SR / LIVE_PEAKS_PER_SECOND)
 
-FLOOR_DB = -70.0
-CEIL_DB = -10.0
+FLOOR_DB = -65.0
+CEIL_DB = -5.0
 
 
 def level_from_samples(samples_int16: np.ndarray) -> float:

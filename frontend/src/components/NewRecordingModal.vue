@@ -10,8 +10,8 @@ const MAX_PEAK_SECONDS = 5
 // Bar height is linear in dB, in two segments: a steep one from SILENCE_DB (0) to KNEE_DB (KNEE_HEIGHT), then a flatter
 // one up to CEIL_DB (1). Stateless, so bars never change once drawn. The server sends levels as dB mapped from
 // SERVER_FLOOR_DB..SERVER_CEIL_DB onto 0..1 (audio_buffer.level_from_samples); undo that to get dB back.
-const SERVER_FLOOR_DB = -70
-const SERVER_CEIL_DB = -10
+const SERVER_FLOOR_DB = -65
+const SERVER_CEIL_DB = -5
 const SILENCE_DB = -55
 const KNEE_DB = -20
 const CEIL_DB = -5
