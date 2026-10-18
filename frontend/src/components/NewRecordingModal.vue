@@ -3,25 +3,11 @@ import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { api } from '../api'
 import { useShowStore } from '../store/show'
 import { ws } from '../ws'
+import { shape } from './timelineDraw'
 
 const WINDOW_SECONDS = 12
 const CLOCK_TICK_MS = 100
 const MAX_PEAK_SECONDS = 13
-// Bar height is linear in dB, in two segments: a steep one from SILENCE_DB (0) to KNEE_DB (KNEE_HEIGHT), then a flatter
-// one up to CEIL_DB (1). Stateless, so bars never change once drawn. The server sends levels as dB mapped from
-// SERVER_FLOOR_DB..SERVER_CEIL_DB onto 0..1 (audio_buffer.level_from_samples); undo that to get dB back.
-const SERVER_FLOOR_DB = -65
-const SERVER_CEIL_DB = -5
-const SILENCE_DB = -55
-const KNEE_DB = -20
-const CEIL_DB = -5
-const KNEE_HEIGHT = 0.8
-function shape(level: number): number {
-  const db = SERVER_FLOOR_DB + level * (SERVER_CEIL_DB - SERVER_FLOOR_DB)
-  if (db <= SILENCE_DB) return 0
-  if (db <= KNEE_DB) return ((db - SILENCE_DB) / (KNEE_DB - SILENCE_DB)) * KNEE_HEIGHT
-  return Math.min(1, KNEE_HEIGHT + ((db - KNEE_DB) / (CEIL_DB - KNEE_DB)) * (1 - KNEE_HEIGHT))
-}
 const OFFSETS = Array.from({ length: WINDOW_SECONDS }, (_, i) => WINDOW_SECONDS - i)
 const MARKER_STEP_SECONDS = 2
 

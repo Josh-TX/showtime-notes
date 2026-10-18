@@ -20,6 +20,25 @@ const LOUDNESS_WINDOW_SECONDS = 20
 const LOUDNESS_MIN_HI = 0.5
 const LOUDNESS_MAX_LO_FRACTION = 0.6
 const LOUDNESS_CURVE = 2
+// With no history the relative scale is meaningless (the first bar always reads as a spike), so the first bars use
+// the absolute dB shape() from the new-recording modal, crossfading to the relative scale over this many seconds.
+const LOUDNESS_BLEND_SECONDS = 3
+
+// Bar height is linear in dB, in two segments: a steep one from SILENCE_DB (0) to KNEE_DB (KNEE_HEIGHT), then a flatter
+// one up to CEIL_DB (1). Stateless, so bars never change once drawn. The server sends levels as dB mapped from
+// SERVER_FLOOR_DB..SERVER_CEIL_DB onto 0..1 (audio_buffer.level_from_samples); undo that to get dB back.
+export const SERVER_FLOOR_DB = -65
+const SERVER_CEIL_DB = -5
+const SILENCE_DB = -55
+const KNEE_DB = -20
+const CEIL_DB = -5
+const KNEE_HEIGHT = 0.8
+export function shape(level: number): number {
+  const db = SERVER_FLOOR_DB + level * (SERVER_CEIL_DB - SERVER_FLOOR_DB)
+  if (db <= SILENCE_DB) return 0
+  if (db <= KNEE_DB) return ((db - SILENCE_DB) / (KNEE_DB - SILENCE_DB)) * KNEE_HEIGHT
+  return Math.min(1, KNEE_HEIGHT + ((db - KNEE_DB) / (CEIL_DB - KNEE_DB)) * (1 - KNEE_HEIGHT))
+}
 
 // Browsers cap canvas size (Safari/iOS: ~16.7M px total area), so wide layers are split into fixed-width tiles.
 export const TILE_WIDTH_PX = 2048
@@ -101,7 +120,9 @@ export function stretchLoudness(raw: number[], out: number[], peaksPerSecond: nu
     const window = raw.slice(Math.max(0, i - windowPeaks + 1), i + 1).sort((a, b) => a - b)
     const hi = Math.max(window[Math.floor((window.length - 1) * 0.95)], LOUDNESS_MIN_HI)
     const lo = Math.min(window[Math.floor((window.length - 1) * 0.05)], hi * LOUDNESS_MAX_LO_FRACTION)
-    out.push(Math.min(1, Math.max(0, (raw[i] - lo) / (hi - lo))))
+    const relative = Math.min(1, Math.max(0, (raw[i] - lo) / (hi - lo))) ** LOUDNESS_CURVE
+    const mix = Math.min(1, i / (LOUDNESS_BLEND_SECONDS * peaksPerSecond))
+    out.push((1 - mix) * shape(raw[i]) + mix * relative)
   }
 }
 
@@ -120,7 +141,7 @@ export function drawLoudnessTile(
   const last = Math.ceil(right / step)
   ctx.fillStyle = LOUDNESS_COLOR
   for (let i = first; i <= last && i < peaks.length; i++) {
-    const h = Math.min(1, peaks[i]) ** LOUDNESS_CURVE * half
+    const h = Math.min(1, peaks[i]) * half
     ctx.fillRect(i * step, half - h, Math.max(1, step), Math.max(1, h * 2))
   }
 }
