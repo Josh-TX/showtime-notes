@@ -135,18 +135,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="isNew || existing" ref="menu" class="note-menu" :style="{ left: `${pos.x}px`, top: `${pos.y}px` }" @contextmenu.prevent>
-    <input
-      ref="input"
-      v-model="text"
-      placeholder="Note text"
-      :maxlength="MAX_TEXT_LENGTH"
-      @input="onInput"
-      @keydown.enter="close"
-    />
-    <ColorPicker :model-value="color" @update:model-value="setColor" />
-    <button class="delete" @click="remove">Delete note</button>
-  </div>
+  <Teleport to="body">
+    <div v-if="isNew || existing" ref="menu" class="note-menu" :style="{ left: `${pos.x}px`, top: `${pos.y}px` }" @contextmenu.prevent>
+      <input
+        ref="input"
+        v-model="text"
+        placeholder="Note text"
+        :maxlength="MAX_TEXT_LENGTH"
+        @input="onInput"
+        @keydown.enter="close"
+      />
+      <ColorPicker :model-value="color" @update:model-value="setColor" />
+      <button class="delete" @click="remove">Delete note</button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>

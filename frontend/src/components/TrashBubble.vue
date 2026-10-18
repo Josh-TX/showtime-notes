@@ -6,13 +6,12 @@ import { addNoteDropHandler, noteDrag } from '../store/noteDrag'
 const el = ref<HTMLElement | null>(null)
 const visible = computed(() => noteDrag.active && !!noteDrag.item?.trash)
 
-// Fixed + teleported to body so it paints above the toolbar (a sibling stacking context). Anchored to the
-// bottom-left of the parent panel, straddling its bottom edge; measured when a drag starts (layout is static then).
+// Fixed + teleported to body so it paints above other panels (sibling stacking contexts). Anchored to the
+// bottom-right corner of the song menu; measured when a drag starts (layout is static then).
 const anchor = ref({ left: 0, top: 0 })
-const placeholder = ref<HTMLElement | null>(null)
 watch(visible, (v) => {
-  const r = placeholder.value?.parentElement?.getBoundingClientRect()
-  if (v && r) anchor.value = { left: r.left, top: r.bottom }
+  const r = document.querySelector('.song-menu')?.getBoundingClientRect()
+  if (v && r) anchor.value = { left: r.right, top: r.bottom }
 })
 
 function pointerOver(): boolean {
@@ -36,7 +35,6 @@ onBeforeUnmount(() => removeDropHandler?.())
 </script>
 
 <template>
-  <span ref="placeholder" hidden />
   <Teleport to="body">
     <div
       v-show="visible"
@@ -54,7 +52,7 @@ onBeforeUnmount(() => removeDropHandler?.())
 <style scoped>
 .trash {
   position: fixed;
-  margin: -3.5rem 0 0 0.6rem; /* straddles the panel's bottom edge, mostly over the toolbar below */
+  margin: calc(-3.5rem - 3px) 0 0 calc(-5.6rem + 3px); /* straddles the menu's bottom edge, overlapping the toolbar below */
   width: 6rem;
   height: 6rem;
   box-sizing: border-box;
@@ -63,6 +61,7 @@ onBeforeUnmount(() => removeDropHandler?.())
   padding: 0 0.8rem;
   color: #bbb;
   font-size: 0.9rem;
+  font-weight: bold;
   text-transform: uppercase;
   text-align: center;
   pointer-events: none;

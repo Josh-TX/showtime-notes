@@ -98,10 +98,9 @@ function drawConfidenceBar(ctx: CanvasRenderingContext2D, x: number, width: numb
 
 function drawWaveform(): void {
   const waveform = store.waveform
-  if (!waveform) return
   for (const tile of tiles.value) {
     const ctx = prepareTile(waveTileCanvases[tile.index], tile, totalHeightPx.value)
-    if (ctx) drawWaveformTile(ctx, tile, totalHeightPx.value, pixelsPerSecond.value, waveform)
+    if (ctx && waveform) drawWaveformTile(ctx, tile, totalHeightPx.value, pixelsPerSecond.value, waveform)
   }
 }
 
