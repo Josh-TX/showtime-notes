@@ -4,9 +4,9 @@ import { api } from '../api'
 import { useShowStore } from '../store/show'
 import { ws } from '../ws'
 
-const WINDOW_SECONDS = 3
+const WINDOW_SECONDS = 12
 const CLOCK_TICK_MS = 100
-const MAX_PEAK_SECONDS = 5
+const MAX_PEAK_SECONDS = 13
 // Bar height is linear in dB, in two segments: a steep one from SILENCE_DB (0) to KNEE_DB (KNEE_HEIGHT), then a flatter
 // one up to CEIL_DB (1). Stateless, so bars never change once drawn. The server sends levels as dB mapped from
 // SERVER_FLOOR_DB..SERVER_CEIL_DB onto 0..1 (audio_buffer.level_from_samples); undo that to get dB back.
@@ -22,8 +22,8 @@ function shape(level: number): number {
   if (db <= KNEE_DB) return ((db - SILENCE_DB) / (KNEE_DB - SILENCE_DB)) * KNEE_HEIGHT
   return Math.min(1, KNEE_HEIGHT + ((db - KNEE_DB) / (CEIL_DB - KNEE_DB)) * (1 - KNEE_HEIGHT))
 }
-const OFFSETS = [3, 2, 1]
-const MARKER_LABELS = ['3s ago', '2s ago', '1s ago', 'now']
+const OFFSETS = Array.from({ length: WINDOW_SECONDS }, (_, i) => WINDOW_SECONDS - i)
+const MARKER_STEP_SECONDS = 2
 
 const store = useShowStore()
 const dialog = ref<HTMLDialogElement | null>(null)
@@ -31,6 +31,7 @@ const canvas = ref<HTMLCanvasElement | null>(null)
 const name = ref('')
 const starting = ref(false)
 const nowMs = ref(Date.now())
+const hoveredAgo = ref<number | null>(null)
 
 interface Preview {
   endTsMs: number
@@ -151,19 +152,39 @@ function draw(): void {
     }
   }
 
+  ctx.strokeStyle = '#2a2a30'
+  ctx.lineWidth = 1
+  for (let i = 1; i < WINDOW_SECONDS; i += MARKER_STEP_SECONDS) {
+    const x = Math.round((i / WINDOW_SECONDS) * w) + 0.5
+    ctx.beginPath()
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, h - labelH)
+    ctx.stroke()
+  }
+
   ctx.strokeStyle = '#555'
   ctx.fillStyle = '#aaa'
   ctx.font = '11px sans-serif'
   ctx.lineWidth = 1
   ctx.textBaseline = 'bottom'
-  for (let i = 0; i <= WINDOW_SECONDS; i++) {
+  for (let i = 0; i <= WINDOW_SECONDS; i += MARKER_STEP_SECONDS) {
     const x = Math.min(w - 0.5, Math.max(0.5, (i / WINDOW_SECONDS) * w))
     ctx.beginPath()
     ctx.moveTo(x, 0)
     ctx.lineTo(x, h - labelH)
     ctx.stroke()
     ctx.textAlign = i === 0 ? 'left' : i === WINDOW_SECONDS ? 'right' : 'center'
-    ctx.fillText(MARKER_LABELS[i], x + (i === 0 ? 2 : i === WINDOW_SECONDS ? -2 : 0), h)
+    ctx.fillText(i === WINDOW_SECONDS ? 'now' : `${WINDOW_SECONDS - i}s ago`, x + (i === 0 ? 2 : i === WINDOW_SECONDS ? -2 : 0), h)
+  }
+
+  if (hoveredAgo.value !== null) {
+    const x = Math.min(w - 1, Math.max(1, ((WINDOW_SECONDS - hoveredAgo.value) / WINDOW_SECONDS) * w))
+    ctx.strokeStyle = '#4da3ff'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, h - labelH)
+    ctx.stroke()
   }
 }
 
@@ -209,16 +230,38 @@ async function start(offsetSeconds: number): Promise<void> {
   <button @click="openModal">New Recording</button>
 
   <dialog ref="dialog" class="recording-modal" @click.self="closeModal" @close="onDialogClose">
-    <div class="modal-content">
+    <div class="modal-header">
       <h2>New Recording</h2>
-      <input v-model="name" class="name-input" placeholder="Song Name" />
+      <button class="close-btn" aria-label="Close" @click="closeModal">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M5 5L19 19M19 5L5 19" />
+        </svg>
+      </button>
+    </div>
+    <div class="modal-content">
+      <div class="name-field">
+        <label for="recording-name">Song name</label>
+        <input id="recording-name" v-model="name" class="name-input" />
+      </div>
       <p v-if="blockedMessage" class="blocked">{{ blockedMessage }}</p>
       <canvas ref="canvas" class="meter" />
       <div class="ago-buttons">
-        <button v-for="s in OFFSETS" :key="s" :disabled="!canStartAgo(s)" @click="start(s)">
-          Start Recording {{ s }} second{{ s === 1 ? '' : 's' }} ago
+        <button
+          v-for="s in OFFSETS"
+          :key="s"
+          :disabled="!canStartAgo(s)"
+          @click="start(s)"
+          @mouseenter="hoveredAgo = s"
+          @mouseleave="hoveredAgo = null"
+          @focus="hoveredAgo = s"
+          @blur="hoveredAgo = null"
+        >
+          <span class="num">{{ s }}</span>
+          <span>seconds</span>
+          <span>ago</span>
         </button>
       </div>
+      <p class="ago-hint">Click one of the above buttons to start recording at that point</p>
       <div class="modal-footer">
         <button @click="closeModal">Cancel</button>
         <button :disabled="!canStart" @click="start(0)">Start Recording Now</button>
@@ -233,23 +276,53 @@ async function start(offsetSeconds: number): Promise<void> {
   border-radius: 8px;
   padding: 0;
   background: transparent;
-  max-width: 760px;
+  max-width: 960px;
   width: 90vw;
 }
 .recording-modal::backdrop {
   background: rgba(0, 0, 0, 0.6);
 }
+.modal-header {
+  background: #141416;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  padding: 0.2rem;
+  display: flex;
+  cursor: pointer;
+}
+.close-btn:hover {
+  color: #fff;
+}
 .modal-content {
-  background: #1e1e1e;
+  background: #141416;
   color: inherit;
   padding: 1.25rem;
-  border-radius: 8px;
+  border-radius: 0 0 8px 8px;
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
 }
-.modal-content h2 {
+.modal-header h2 {
   margin: 0;
+  font-size: 1.2rem;
+}
+.name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.name-field label {
+  font-size: 0.9rem;
+  color: #aaa;
 }
 .name-input {
   font-size: 1.1rem;
@@ -273,13 +346,44 @@ async function start(offsetSeconds: number): Promise<void> {
 }
 .ago-buttons {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(12, 1fr);
   gap: 0;
 }
 .ago-buttons button {
-  margin: 0 2px;
-  font-size: 0.8rem;
-  padding: 0.3rem 0.2rem;
+  margin: 0 1px;
+  font-size: 0.65rem;
+  line-height: 1.1;
+  padding: 0.3rem 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ago-buttons button {
+  background: #1c1c20;
+  color: #ddd;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.ago-buttons button:hover:not(:disabled),
+.ago-buttons button:focus-visible:not(:disabled) {
+  border-color: #4da3ff;
+  box-shadow: 0 0 0 1px #4da3ff;
+  outline: none;
+}
+.ago-buttons button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ago-buttons .num {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+.ago-hint {
+  margin: 0;
+  text-align: center;
+  color: #aaa;
+  font-size: 0.9rem;
 }
 .modal-footer {
   display: flex;
