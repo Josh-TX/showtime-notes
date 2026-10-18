@@ -26,6 +26,8 @@ const selectedDeviceId = ref('')
 const captureError = ref<string | null>(null)
 const showModeChoice = ref(false)
 const isSecureContext = window.isSecureContext
+// Only Chromium reliably provides audio from getDisplayMedia; Firefox/Safari don't expose userAgentData.
+const isChromium = !!(navigator as Navigator & { userAgentData?: { brands: { brand: string }[] } }).userAgentData?.brands.some((b) => b.brand === 'Chromium')
 
 const listenerLabel = computed(() =>
   store.show?.listener.deviceName ? `${store.show.listener.deviceName} is the listener` : 'server has no listener',
@@ -211,6 +213,7 @@ async function toggleLiveAudio(): Promise<void> {
                   <path d="M12 16v4" />
                 </svg>
                 Browser Tab
+                <span v-if="!isChromium" class="source-warning">Only works in Chrome</span>
               </button>
             </div>
             <p v-if="captureError" class="device-error">{{ captureError }}</p>
@@ -408,6 +411,7 @@ async function toggleLiveAudio(): Promise<void> {
   gap: 0.6rem;
 }
 .source-button {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -416,6 +420,14 @@ async function toggleLiveAudio(): Promise<void> {
   gap: 0.3rem;
   padding: 0.25rem 0.5rem;
   font-size: 1rem;
+}
+.source-warning {
+  position: absolute;
+  bottom: 0.2rem;
+  left: 0;
+  right: 0;
+  font-size: 0.8rem;
+  color: #e0a03e;
 }
 .card {
   display: flex;
